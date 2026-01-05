@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Purpose
 
 "The Journey" - A personal productivity workspace for managing tasks across three life domains:
-- **Professional** - Career and job-related tasks
+- **Work** - Career and job-related tasks
 - **Side projects** - Personal development and hobby projects
 - **Chores** - Life admin and household tasks
 
