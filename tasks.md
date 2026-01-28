@@ -4,6 +4,9 @@ Local copy for AI context. Source of truth is Linear.
 
 ## Backlog
 
+### Side Projects
+- DEF-12: Increase Sticked revenue (Q1 goal)
+
 ### Chores
 - DEF-5: Check Zilveren Kruis package - evaluate physiotherapy session coverage
 - DEF-6: Investigate moving business account from ING to Revolut

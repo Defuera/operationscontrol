@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Side projects** - Personal development and hobby projects
 - **Chores** - Life admin and household tasks
 
-This is a document-based workspace, not a codebase. Claude assists with planning and executing tasks managed in Linear.
+A custom productivity app with kanban board, projects, and AI-powered journal.
 
 ## AI Assistant Role
 
@@ -18,12 +18,14 @@ Claude acts as a productivity partner:
 2. **Execution** - Help complete tasks, provide context, unblock progress
 3. **Sustainability** - Prevent burnout through steady progress, suggesting breaks, balancing workload
 
-## Linear Integration
+## AI Guides
 
-Tasks are managed in Linear. Claude helps via the Linear API to:
-- Create and update tasks
-- Move tasks through workflow states
-- Review progress and adjust priorities
+MUST follow these guides when working on this project:
+
+- `docs/ai_guides/modularity_guide.md` - File size limits and code organization
+- `docs/ai_guides/commit_guide.md` - Git commit conventions
+- `docs/ai_guides/package_creation_guide.md` - Creating new packages
+- `docs/ai_guides/guide_writing_guide.md` - Writing new AI guides
 
 ## Key Principles
 
