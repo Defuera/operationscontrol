@@ -122,6 +122,9 @@ export function Board({ initialTasks }: BoardProps) {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">The Journey</h1>
         <div className="flex items-center gap-2">
+          <Link href="/goals">
+            <Button variant="outline">Goals</Button>
+          </Link>
           <Link href="/projects">
             <Button variant="outline">Projects</Button>
           </Link>

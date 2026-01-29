@@ -52,3 +52,16 @@ export const journalEntries = sqliteTable('journal_entries', {
   aiAnalysis: text('ai_analysis'),
   createdAt: text('created_at').notNull(),
 });
+
+// Goals
+export const goals = sqliteTable('goals', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description'),
+  horizon: text('horizon').notNull(), // yearly, quarterly, monthly, weekly, daily
+  status: text('status', {
+    enum: ['active', 'completed', 'archived']
+  }).notNull().default('active'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});

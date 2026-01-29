@@ -44,3 +44,15 @@ export interface JournalEntry {
   aiAnalysis: string | null;
   createdAt: string;
 }
+
+export type GoalStatus = 'active' | 'completed' | 'archived';
+
+export interface Goal {
+  id: string;
+  title: string;
+  description: string | null;
+  horizon: string;
+  status: GoalStatus;
+  createdAt: string;
+  updatedAt: string;
+}
