@@ -58,9 +58,11 @@ export function WeekView({ tasks, currentDate, onTaskClick }: WeekViewProps) {
                   onClick={() => onTaskClick(task)}
                 >
                   <p className="text-xs font-medium truncate">{task.title}</p>
-                  <Badge variant="secondary" className={`${domainColors[task.domain]} text-xs mt-1`}>
-                    {task.domain}
-                  </Badge>
+                  {task.domain && (
+                    <Badge variant="secondary" className={`${domainColors[task.domain]} text-xs mt-1`}>
+                      {task.domain}
+                    </Badge>
+                  )}
                 </Card>
               ))}
               {dayTasks.length === 0 && (

@@ -45,9 +45,11 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       <div className="flex flex-col gap-2">
         <p className="font-medium text-sm">{task.title}</p>
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className={domainColors[task.domain]}>
-            {task.domain}
-          </Badge>
+          {task.domain && (
+            <Badge variant="secondary" className={domainColors[task.domain]}>
+              {task.domain}
+            </Badge>
+          )}
           {task.priority > 0 && (
             <Badge variant="outline" className="text-xs">
               P{task.priority}

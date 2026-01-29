@@ -60,7 +60,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const handleTaskSave = async (data: {
     title: string;
     description: string;
-    domain: TaskDomain;
+    domain?: TaskDomain;
     priority: number;
   }) => {
     if (editingTask) {
@@ -163,6 +163,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         onClose={() => { setTaskDialogOpen(false); setEditingTask(null); }}
         onSave={handleTaskSave}
         onDelete={editingTask ? handleTaskDelete : undefined}
+        showDomain={false}
       />
     </main>
   );

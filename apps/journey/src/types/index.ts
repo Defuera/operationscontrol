@@ -6,7 +6,7 @@ export interface Task {
   title: string;
   description: string | null;
   status: TaskStatus;
-  domain: TaskDomain;
+  domain: TaskDomain | null;
   priority: number;
   scheduledFor: string | null;
   projectId: string | null;

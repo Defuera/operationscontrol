@@ -10,7 +10,7 @@ export const tasks = sqliteTable('tasks', {
   }).notNull().default('backlog'),
   domain: text('domain', {
     enum: ['work', 'side', 'chores']
-  }).notNull(),
+  }),
   priority: integer('priority').notNull().default(0),
   scheduledFor: text('scheduled_for'),
   projectId: text('project_id').references(() => projects.id),

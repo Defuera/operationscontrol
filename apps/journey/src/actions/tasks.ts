@@ -9,7 +9,7 @@ import type { Task, TaskStatus, TaskDomain } from '@/types';
 export interface CreateTaskInput {
   title: string;
   description?: string;
-  domain: TaskDomain;
+  domain?: TaskDomain;
   priority?: number;
   scheduledFor?: string;
   projectId?: string;
@@ -21,7 +21,7 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
     id: crypto.randomUUID(),
     title: input.title,
     description: input.description || null,
-    domain: input.domain,
+    domain: input.domain || null,
     priority: input.priority || 0,
     scheduledFor: input.scheduledFor || null,
     projectId: input.projectId || null,

@@ -89,7 +89,7 @@ export function Board({ initialTasks }: BoardProps) {
   const handleSave = async (data: {
     title: string;
     description: string;
-    domain: TaskDomain;
+    domain?: TaskDomain;
     priority: number;
   }) => {
     if (editingTask) {

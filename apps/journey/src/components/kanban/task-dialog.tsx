@@ -24,11 +24,12 @@ interface TaskDialogProps {
   task: Task | null;
   open: boolean;
   onClose: () => void;
-  onSave: (data: { title: string; description: string; domain: TaskDomain; priority: number }) => void;
+  onSave: (data: { title: string; description: string; domain?: TaskDomain; priority: number }) => void;
   onDelete?: () => void;
+  showDomain?: boolean;
 }
 
-export function TaskDialog({ task, open, onClose, onSave, onDelete }: TaskDialogProps) {
+export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain = true }: TaskDialogProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [domain, setDomain] = useState<TaskDomain>('work');
@@ -38,7 +39,7 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete }: TaskDialog
     if (task) {
       setTitle(task.title);
       setDescription(task.description || '');
-      setDomain(task.domain);
+      setDomain(task.domain || 'work');
       setPriority(task.priority);
     } else {
       setTitle('');
@@ -51,7 +52,12 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete }: TaskDialog
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onSave({ title: title.trim(), description, domain, priority });
+    onSave({
+      title: title.trim(),
+      description,
+      domain: showDomain ? domain : undefined,
+      priority,
+    });
   };
 
   return (
@@ -78,19 +84,21 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete }: TaskDialog
             />
           </div>
           <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="text-sm text-gray-600 mb-1 block">Domain</label>
-              <Select value={domain} onValueChange={(v) => setDomain(v as TaskDomain)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="work">Work</SelectItem>
-                  <SelectItem value="side">Side Projects</SelectItem>
-                  <SelectItem value="chores">Chores</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {showDomain && (
+              <div className="flex-1">
+                <label className="text-sm text-gray-600 mb-1 block">Domain</label>
+                <Select value={domain} onValueChange={(v) => setDomain(v as TaskDomain)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="work">Work</SelectItem>
+                    <SelectItem value="side">Side Projects</SelectItem>
+                    <SelectItem value="chores">Chores</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="flex-1">
               <label className="text-sm text-gray-600 mb-1 block">Priority</label>
               <Select value={String(priority)} onValueChange={(v) => setPriority(Number(v))}>
