@@ -18,6 +18,12 @@ Claude acts as a productivity partner:
 2. **Execution** - Help complete tasks, provide context, unblock progress
 3. **Sustainability** - Prevent burnout through steady progress, suggesting breaks, balancing workload
 
+## Working Preferences
+
+- PREFER CLI tools over manual file generation (e.g., `npx create-next-app`, `npx shadcn-ui add`)
+- PREFER npm over other package managers
+- MUST run commands from project root unless otherwise specified
+
 ## AI Guides
 
 MUST follow these guides when working on this project:
