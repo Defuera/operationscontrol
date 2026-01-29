@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   DndContext,
   DragEndEvent,
@@ -120,7 +121,12 @@ export function Board({ initialTasks }: BoardProps) {
     <div className="h-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">The Journey</h1>
-        <Button onClick={handleNewTask}>+ New Task</Button>
+        <div className="flex items-center gap-2">
+          <Link href="/projects">
+            <Button variant="outline">Projects</Button>
+          </Link>
+          <Button onClick={handleNewTask}>+ New Task</Button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between mb-4">
