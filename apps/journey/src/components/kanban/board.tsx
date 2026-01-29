@@ -125,6 +125,9 @@ export function Board({ initialTasks }: BoardProps) {
           <Link href="/projects">
             <Button variant="outline">Projects</Button>
           </Link>
+          <Link href="/journal">
+            <Button variant="outline">Journal</Button>
+          </Link>
           <Button onClick={handleNewTask}>+ New Task</Button>
         </div>
       </div>
