@@ -13,11 +13,15 @@ import {
 import { Column } from './column';
 import { TaskCard } from './task-card';
 import { TaskDialog } from './task-dialog';
+import { ViewSwitcher, ViewType } from './view-switcher';
+import { WeekView } from './week-view';
+import { QuarterView } from './quarter-view';
 import { Button } from '@/components/ui/button';
 import { createTask, updateTask, updateTaskStatus, deleteTask } from '@/actions/tasks';
 import type { Task, TaskStatus, TaskDomain } from '@/types';
 
 const statuses: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'done'];
+const domains: (TaskDomain | 'all')[] = ['all', 'work', 'side', 'chores'];
 
 interface BoardProps {
   initialTasks: Task[];
@@ -28,13 +32,20 @@ export function Board({ initialTasks }: BoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [domainFilter, setDomainFilter] = useState<TaskDomain | 'all'>('all');
+  const [view, setView] = useState<ViewType>('day');
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
+  const filteredTasks = domainFilter === 'all'
+    ? tasks
+    : tasks.filter(t => t.domain === domainFilter);
+
   const tasksByStatus = statuses.reduce((acc, status) => {
-    acc[status] = tasks.filter(t => t.status === status);
+    acc[status] = filteredTasks.filter(t => t.status === status);
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
 
@@ -53,14 +64,12 @@ export function Board({ initialTasks }: BoardProps) {
     const task = tasks.find(t => t.id === taskId);
 
     if (task && task.status !== newStatus && statuses.includes(newStatus)) {
-      // Optimistic update
       setTasks(prev =>
         prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t))
       );
       try {
         await updateTaskStatus(taskId, newStatus);
       } catch {
-        // Revert on error
         setTasks(initialTasks);
       }
     }
@@ -102,6 +111,11 @@ export function Board({ initialTasks }: BoardProps) {
     }
   };
 
+  const handleWeekClick = (weekStart: Date) => {
+    setCurrentDate(weekStart);
+    setView('week');
+  };
+
   return (
     <div className="h-full">
       <div className="flex items-center justify-between mb-6">
@@ -109,28 +123,64 @@ export function Board({ initialTasks }: BoardProps) {
         <Button onClick={handleNewTask}>+ New Task</Button>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {statuses.map(status => (
-            <Column
-              key={status}
-              status={status}
-              tasks={tasksByStatus[status]}
-              onTaskClick={handleTaskClick}
-            />
+      <div className="flex items-center justify-between mb-4">
+        <ViewSwitcher
+          view={view}
+          onViewChange={setView}
+          currentDate={currentDate}
+          onDateChange={setCurrentDate}
+        />
+        <div className="flex gap-1">
+          {domains.map(d => (
+            <Button
+              key={d}
+              variant={domainFilter === d ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDomainFilter(d)}
+            >
+              {d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)}
+            </Button>
           ))}
         </div>
+      </div>
 
-        <DragOverlay>
-          {activeTask && (
-            <TaskCard task={activeTask} onClick={() => {}} />
-          )}
-        </DragOverlay>
-      </DndContext>
+      {view === 'day' && (
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {statuses.map(status => (
+              <Column
+                key={status}
+                status={status}
+                tasks={tasksByStatus[status]}
+                onTaskClick={handleTaskClick}
+              />
+            ))}
+          </div>
+          <DragOverlay>
+            {activeTask && <TaskCard task={activeTask} onClick={() => {}} />}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      {view === 'week' && (
+        <WeekView
+          tasks={filteredTasks}
+          currentDate={currentDate}
+          onTaskClick={handleTaskClick}
+        />
+      )}
+
+      {view === 'quarter' && (
+        <QuarterView
+          tasks={filteredTasks}
+          currentDate={currentDate}
+          onWeekClick={handleWeekClick}
+        />
+      )}
 
       <TaskDialog
         task={editingTask}
