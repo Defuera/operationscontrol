@@ -9,8 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { ProjectDialog } from '@/components/projects';
 import { TaskDialog } from '@/components/kanban';
 import { getProjectWithTasks, updateProject, deleteProject } from '@/actions/projects';
-import { createTask, updateTask, updateTaskStatus, deleteTask } from '@/actions/tasks';
-import type { Project, Task, ProjectType, ProjectStatus, TaskDomain } from '@/types';
+import { createTask, updateTask, updateTaskStatus, deleteTask, addTaskToBoard, removeTaskFromBoard } from '@/actions/tasks';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { Project, Task, ProjectType, ProjectStatus, TaskDomain, BoardScope } from '@/types';
 
 const statusColors: Record<string, string> = {
   backlog: 'bg-gray-100 text-gray-800',
@@ -83,6 +90,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  const handleAddToBoard = async (taskId: string, scope: BoardScope) => {
+    await addTaskToBoard(taskId, scope);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, boardScope: scope } : t));
+  };
+
+  const handleRemoveFromBoard = async (taskId: string) => {
+    await removeTaskFromBoard(taskId);
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, boardScope: null } : t));
+  };
+
   if (!project) {
     return <div className="p-8">Loading...</div>;
   }
@@ -135,13 +152,48 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               {tasksByStatus[status].map(task => (
                 <Card
                   key={task.id}
-                  className="p-3 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => { setEditingTask(task); setTaskDialogOpen(true); }}
+                  className="p-3 hover:shadow-md transition-shadow"
                 >
-                  <p className="font-medium text-sm mb-1">{task.title}</p>
-                  <Badge variant="secondary" className={statusColors[task.status]}>
-                    {task.status.replace('_', ' ')}
-                  </Badge>
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => { setEditingTask(task); setTaskDialogOpen(true); }}
+                  >
+                    <p className="font-medium text-sm mb-1">{task.title}</p>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Badge variant="secondary" className={statusColors[task.status]}>
+                        {task.status.replace('_', ' ')}
+                      </Badge>
+                      {task.boardScope && (
+                        <Badge variant="outline" className="text-xs">
+                          {task.boardScope}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+                    {task.boardScope ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => handleRemoveFromBoard(task.id)}
+                      >
+                        Remove from board
+                      </Button>
+                    ) : (
+                      <Select onValueChange={(v) => handleAddToBoard(task.id, v as BoardScope)}>
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Add to board..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="day">Day</SelectItem>
+                          <SelectItem value="week">Week</SelectItem>
+                          <SelectItem value="month">Month</SelectItem>
+                          <SelectItem value="quarter">Quarter</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 </Card>
               ))}
             </div>

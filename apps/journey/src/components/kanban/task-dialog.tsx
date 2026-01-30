@@ -18,22 +18,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Task, TaskDomain } from '@/types';
+import type { Task, TaskDomain, BoardScope } from '@/types';
 
 interface TaskDialogProps {
   task: Task | null;
   open: boolean;
   onClose: () => void;
-  onSave: (data: { title: string; description: string; domain?: TaskDomain; priority: number }) => void;
+  onSave: (data: { title: string; description: string; domain?: TaskDomain; priority: number; boardScope?: BoardScope }) => void;
   onDelete?: () => void;
   showDomain?: boolean;
+  showBoardScope?: boolean;
 }
 
-export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain = true }: TaskDialogProps) {
+export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain = true, showBoardScope = false }: TaskDialogProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [domain, setDomain] = useState<TaskDomain>('work');
   const [priority, setPriority] = useState(0);
+  const [boardScope, setBoardScope] = useState<BoardScope>('day');
 
   useEffect(() => {
     if (task) {
@@ -41,11 +43,13 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain =
       setDescription(task.description || '');
       setDomain(task.domain || 'work');
       setPriority(task.priority);
+      setBoardScope(task.boardScope || 'day');
     } else {
       setTitle('');
       setDescription('');
       setDomain('work');
       setPriority(0);
+      setBoardScope('day');
     }
   }, [task, open]);
 
@@ -57,6 +61,7 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain =
       description,
       domain: showDomain ? domain : undefined,
       priority,
+      boardScope: showBoardScope ? boardScope : undefined,
     });
   };
 
@@ -95,6 +100,7 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain =
                     <SelectItem value="work">Work</SelectItem>
                     <SelectItem value="side">Side Projects</SelectItem>
                     <SelectItem value="chores">Chores</SelectItem>
+                    <SelectItem value="life">Life</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -114,6 +120,22 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain =
                 </SelectContent>
               </Select>
             </div>
+            {showBoardScope && (
+              <div className="flex-1">
+                <label className="text-sm text-gray-600 mb-1 block">Board Scope</label>
+                <Select value={boardScope} onValueChange={(v) => setBoardScope(v as BoardScope)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Day</SelectItem>
+                    <SelectItem value="week">Week</SelectItem>
+                    <SelectItem value="month">Month</SelectItem>
+                    <SelectItem value="quarter">Quarter</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex justify-between">
             {task && onDelete && (

@@ -2,9 +2,9 @@
 
 import { db } from '@/db';
 import { tasks } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, isNotNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import type { Task, TaskStatus, TaskDomain } from '@/types';
+import type { Task, TaskStatus, TaskDomain, BoardScope } from '@/types';
 
 export interface CreateTaskInput {
   title: string;
@@ -12,6 +12,7 @@ export interface CreateTaskInput {
   domain?: TaskDomain;
   priority?: number;
   scheduledFor?: string;
+  boardScope?: BoardScope;
   projectId?: string;
 }
 
@@ -24,6 +25,7 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
     domain: input.domain || null,
     priority: input.priority || 0,
     scheduledFor: input.scheduledFor || null,
+    boardScope: input.boardScope || null,
     projectId: input.projectId || null,
     status: 'backlog',
     createdAt: now,
@@ -53,6 +55,22 @@ export async function updateTaskStatus(id: string, status: TaskStatus): Promise<
   revalidatePath('/');
 }
 
+export async function addTaskToBoard(id: string, boardScope: BoardScope): Promise<void> {
+  await db.update(tasks)
+    .set({ boardScope, updatedAt: new Date().toISOString() })
+    .where(eq(tasks.id, id));
+
+  revalidatePath('/');
+}
+
+export async function removeTaskFromBoard(id: string): Promise<void> {
+  await db.update(tasks)
+    .set({ boardScope: null, updatedAt: new Date().toISOString() })
+    .where(eq(tasks.id, id));
+
+  revalidatePath('/');
+}
+
 export async function deleteTask(id: string): Promise<void> {
   await db.delete(tasks).where(eq(tasks.id, id));
   revalidatePath('/');
@@ -60,5 +78,12 @@ export async function deleteTask(id: string): Promise<void> {
 
 export async function getTasks(): Promise<Task[]> {
   const result = await db.select().from(tasks);
+  return result as Task[];
+}
+
+export async function getBoardTasks(): Promise<Task[]> {
+  const result = await db.select()
+    .from(tasks)
+    .where(isNotNull(tasks.boardScope));
   return result as Task[];
 }

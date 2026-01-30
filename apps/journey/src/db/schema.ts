@@ -9,10 +9,13 @@ export const tasks = sqliteTable('tasks', {
     enum: ['backlog', 'todo', 'in_progress', 'done']
   }).notNull().default('backlog'),
   domain: text('domain', {
-    enum: ['work', 'side', 'chores']
+    enum: ['work', 'side', 'chores', 'life']
   }),
   priority: integer('priority').notNull().default(0),
   scheduledFor: text('scheduled_for'),
+  boardScope: text('board_scope', {
+    enum: ['day', 'week', 'month', 'quarter']
+  }), // null = not on board
   projectId: text('project_id').references(() => projects.id),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),

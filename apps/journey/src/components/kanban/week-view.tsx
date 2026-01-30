@@ -8,6 +8,7 @@ const domainColors: Record<string, string> = {
   work: 'bg-blue-100 text-blue-800',
   side: 'bg-green-100 text-green-800',
   chores: 'bg-orange-100 text-orange-800',
+  life: 'bg-purple-100 text-purple-800',
 };
 
 interface WeekViewProps {

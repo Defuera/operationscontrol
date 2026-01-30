@@ -19,10 +19,10 @@ import { WeekView } from './week-view';
 import { QuarterView } from './quarter-view';
 import { Button } from '@/components/ui/button';
 import { createTask, updateTask, updateTaskStatus, deleteTask } from '@/actions/tasks';
-import type { Task, TaskStatus, TaskDomain } from '@/types';
+import type { Task, TaskStatus, TaskDomain, BoardScope } from '@/types';
 
 const statuses: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'done'];
-const domains: (TaskDomain | 'all')[] = ['all', 'work', 'side', 'chores'];
+const domains: (TaskDomain | 'all')[] = ['all', 'work', 'side', 'chores', 'life'];
 
 interface BoardProps {
   initialTasks: Task[];
@@ -91,6 +91,7 @@ export function Board({ initialTasks }: BoardProps) {
     description: string;
     domain?: TaskDomain;
     priority: number;
+    boardScope?: BoardScope;
   }) => {
     if (editingTask) {
       await updateTask(editingTask.id, data);
@@ -98,7 +99,7 @@ export function Board({ initialTasks }: BoardProps) {
         prev.map(t => (t.id === editingTask.id ? { ...t, ...data } : t))
       );
     } else {
-      const newTask = await createTask(data);
+      const newTask = await createTask({ ...data, boardScope: data.boardScope || 'day' });
       setTasks(prev => [...prev, newTask]);
     }
     setDialogOpen(false);
@@ -200,6 +201,7 @@ export function Board({ initialTasks }: BoardProps) {
         onClose={() => setDialogOpen(false)}
         onSave={handleSave}
         onDelete={editingTask ? handleDelete : undefined}
+        showBoardScope={true}
       />
     </div>
   );
