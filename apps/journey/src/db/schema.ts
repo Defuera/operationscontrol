@@ -68,3 +68,49 @@ export const goals = sqliteTable('goals', {
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+// AI Threads
+export const aiThreads = sqliteTable('ai_threads', {
+  id: text('id').primaryKey(),
+  anchorEntityType: text('anchor_entity_type', {
+    enum: ['project', 'task', 'goal', 'journal']
+  }),
+  anchorEntityId: text('anchor_entity_id'),
+  title: text('title'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// AI Messages
+export const aiMessages = sqliteTable('ai_messages', {
+  id: text('id').primaryKey(),
+  threadId: text('thread_id').notNull().references(() => aiThreads.id),
+  role: text('role', {
+    enum: ['user', 'assistant']
+  }).notNull(),
+  content: text('content').notNull(),
+  toolCalls: text('tool_calls'), // JSON string of tool calls
+  createdAt: text('created_at').notNull(),
+});
+
+// AI Actions (proposed/executed changes)
+export const aiActions = sqliteTable('ai_actions', {
+  id: text('id').primaryKey(),
+  messageId: text('message_id').notNull().references(() => aiMessages.id),
+  actionType: text('action_type', {
+    enum: ['create', 'update', 'delete']
+  }).notNull(),
+  entityType: text('entity_type', {
+    enum: ['task', 'project', 'goal']
+  }).notNull(),
+  entityId: text('entity_id'),
+  payload: text('payload').notNull(), // JSON string of the action data
+  status: text('status', {
+    enum: ['pending', 'confirmed', 'rejected', 'reverted']
+  }).notNull().default('pending'),
+  snapshotBefore: text('snapshot_before'), // JSON string of entity state before
+  snapshotAfter: text('snapshot_after'), // JSON string of entity state after
+  createdAt: text('created_at').notNull(),
+  executedAt: text('executed_at'),
+  revertedAt: text('reverted_at'),
+});

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ProjectDialog } from '@/components/projects';
 import { TaskDialog } from '@/components/kanban';
+import { useAIContext } from '@/components/ai-chat';
 import { getProjectWithTasks, updateProject, deleteProject } from '@/actions/projects';
 import { createTask, updateTask, updateTaskStatus, deleteTask, addTaskToBoard, removeTaskFromBoard } from '@/actions/tasks';
 import {
@@ -29,6 +30,7 @@ const statusColors: Record<string, string> = {
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { setContext } = useAIContext();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
@@ -37,7 +39,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   useEffect(() => {
     loadData();
-  }, [id]);
+    setContext({ type: 'project', entityId: id });
+    return () => setContext(null);
+  }, [id, setContext]);
 
   const loadData = async () => {
     const data = await getProjectWithTasks(id);
