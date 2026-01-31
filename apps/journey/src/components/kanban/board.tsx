@@ -41,9 +41,13 @@ export function Board({ initialTasks }: BoardProps) {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  const filteredTasks = domainFilter === 'all'
-    ? tasks
-    : tasks.filter(t => t.domain === domainFilter);
+  // Map view to boardScope (day view shows day tasks, week shows week, etc.)
+  const viewToScope: Record<ViewType, BoardScope> = { day: 'day', week: 'week', quarter: 'quarter' };
+  const currentScope = viewToScope[view];
+
+  const filteredTasks = tasks
+    .filter(t => t.boardScope === currentScope)
+    .filter(t => domainFilter === 'all' || t.domain === domainFilter);
 
   const tasksByStatus = statuses.reduce((acc, status) => {
     acc[status] = filteredTasks.filter(t => t.status === status);
@@ -99,7 +103,7 @@ export function Board({ initialTasks }: BoardProps) {
         prev.map(t => (t.id === editingTask.id ? { ...t, ...data } : t))
       );
     } else {
-      const newTask = await createTask({ ...data, boardScope: data.boardScope || 'day' });
+      const newTask = await createTask({ ...data, boardScope: data.boardScope || currentScope });
       setTasks(prev => [...prev, newTask]);
     }
     setDialogOpen(false);
@@ -202,6 +206,7 @@ export function Board({ initialTasks }: BoardProps) {
         onSave={handleSave}
         onDelete={editingTask ? handleDelete : undefined}
         showBoardScope={true}
+        defaultBoardScope={currentScope}
       />
     </div>
   );

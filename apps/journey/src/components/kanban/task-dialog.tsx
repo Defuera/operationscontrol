@@ -28,14 +28,15 @@ interface TaskDialogProps {
   onDelete?: () => void;
   showDomain?: boolean;
   showBoardScope?: boolean;
+  defaultBoardScope?: BoardScope;
 }
 
-export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain = true, showBoardScope = false }: TaskDialogProps) {
+export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain = true, showBoardScope = false, defaultBoardScope = 'day' }: TaskDialogProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [domain, setDomain] = useState<TaskDomain>('work');
   const [priority, setPriority] = useState(0);
-  const [boardScope, setBoardScope] = useState<BoardScope>('day');
+  const [boardScope, setBoardScope] = useState<BoardScope>(defaultBoardScope);
 
   useEffect(() => {
     if (task) {
@@ -43,15 +44,15 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain =
       setDescription(task.description || '');
       setDomain(task.domain || 'work');
       setPriority(task.priority);
-      setBoardScope(task.boardScope || 'day');
+      setBoardScope(task.boardScope || defaultBoardScope);
     } else {
       setTitle('');
       setDescription('');
       setDomain('work');
       setPriority(0);
-      setBoardScope('day');
+      setBoardScope(defaultBoardScope);
     }
-  }, [task, open]);
+  }, [task, open, defaultBoardScope]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
