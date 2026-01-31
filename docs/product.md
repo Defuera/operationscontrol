@@ -122,19 +122,34 @@ AI analysis is **on-demand only** - triggered by an "Analyze" button. The AI:
 
 ---
 
-### 4. Telegram Bot (Future)
+### 4. AI Chat (Future)
 
-A conversational interface for quick interactions with The Journey.
+Global AI assistant accessible from any page. Full design in `docs/ai_chat.md`.
 
-#### Planned Commands
+#### Key Features
+
+- Context-aware (knows current page/entity)
+- Full CRUD access to all entities
+- User confirmation required for all changes
+- Diff preview before applying changes
+- Full audit trail with revert capability
+
+---
+
+### 5. Telegram Bot (Future)
+
+Alternative interface to AI Chat via Telegram. Uses same AI core as web chat.
+
+See `docs/ai_chat.md` for full Telegram integration design.
+
+#### Quick Commands
 
 | Command | Description |
 |---------|-------------|
 | `/add <task>` | Quick-add a task to backlog |
 | `/today` | List today's scheduled tasks |
-| `/week` | Weekly summary |
-| `/journal <text>` | Add a journal entry |
 | `/status` | Current in-progress tasks |
+| `/undo` | Revert last AI action |
 
 ---
 

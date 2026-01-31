@@ -176,188 +176,23 @@ Use proper `timestamp` types instead of text for dates.
 
 ---
 
-## AI Provider Abstraction
+## AI Integration
 
-The AI layer uses a provider pattern for easy swapping between models.
+### Provider Pattern
 
-### Interface Definition
+AI uses a provider abstraction (`src/lib/ai/`) for swappable backends:
 
-```typescript
-// src/lib/ai/types.ts
+| Provider | Model | Status |
+|----------|-------|--------|
+| OpenAI | gpt-4o | Default |
+| Anthropic | claude-sonnet | Alternative |
 
-export interface AnalysisResponse {
-  analysis: {
-    summary: string;
-    emotionalState: string | null;
-    energyLevel: 'low' | 'medium' | 'high' | null;
-    keyThemes: string[];
-  };
-  suggestedTasks: Array<{
-    title: string;
-    description: string;
-    domain: 'work' | 'side' | 'chores';
-    priority: number;
-  }>;
-  suggestedUpdates: Array<{
-    taskId: string;
-    field: 'status' | 'priority' | 'scheduledFor';
-    newValue: string;
-    reason: string;
-  }>;
-}
+Set via `AI_PROVIDER` env var (defaults to `openai`).
 
-export interface AIProvider {
-  analyzeJournal(content: string, existingTasks?: Task[]): Promise<AnalysisResponse>;
-}
-```
+### Features
 
-### OpenAI Implementation (Default)
-
-```typescript
-// src/lib/ai/openai.ts
-import OpenAI from 'openai';
-import { AIProvider, AnalysisResponse } from './types';
-import { buildAnalysisPrompt } from './prompts';
-
-const client = new OpenAI();
-
-export const openaiProvider: AIProvider = {
-  async analyzeJournal(content, existingTasks = []) {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: buildAnalysisPrompt(existingTasks) },
-        { role: 'user', content }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.7,
-    });
-
-    return JSON.parse(response.choices[0].message.content!) as AnalysisResponse;
-  }
-};
-```
-
-### Claude Implementation (Alternative)
-
-```typescript
-// src/lib/ai/claude.ts
-import Anthropic from '@anthropic-ai/sdk';
-import { AIProvider, AnalysisResponse } from './types';
-import { buildAnalysisPrompt } from './prompts';
-
-const client = new Anthropic();
-
-export const claudeProvider: AIProvider = {
-  async analyzeJournal(content, existingTasks = []) {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: buildAnalysisPrompt(existingTasks),
-      messages: [{ role: 'user', content }],
-    });
-
-    const text = response.content[0].type === 'text'
-      ? response.content[0].text
-      : '';
-    return JSON.parse(text) as AnalysisResponse;
-  }
-};
-```
-
-### Provider Export
-
-```typescript
-// src/lib/ai/index.ts
-import { AIProvider } from './types';
-import { openaiProvider } from './openai';
-// import { claudeProvider } from './claude';
-
-const providers: Record<string, AIProvider> = {
-  openai: openaiProvider,
-  // claude: claudeProvider,
-};
-
-const providerName = process.env.AI_PROVIDER || 'openai';
-export const ai: AIProvider = providers[providerName];
-
-// Re-export types
-export * from './types';
-```
-
-### Shared Prompts
-
-```typescript
-// src/lib/ai/prompts.ts
-import { Task } from '@/types';
-
-export function buildAnalysisPrompt(existingTasks: Task[]): string {
-  const taskList = existingTasks.length > 0
-    ? `\n\nExisting tasks:\n${existingTasks.map(t => `- [${t.id}] ${t.title} (${t.status})`).join('\n')}`
-    : '';
-
-  return `You are a productivity assistant analyzing journal entries.
-Extract insights and suggest actionable tasks.
-
-Respond with JSON matching this schema:
-{
-  "analysis": {
-    "summary": "Brief summary of the entry",
-    "emotionalState": "emotional tone or null",
-    "energyLevel": "low" | "medium" | "high" | null,
-    "keyThemes": ["theme1", "theme2"]
-  },
-  "suggestedTasks": [
-    {
-      "title": "Action-oriented task title",
-      "description": "Context for the task",
-      "domain": "work" | "side" | "chores",
-      "priority": 0-4
-    }
-  ],
-  "suggestedUpdates": [
-    {
-      "taskId": "existing task ID to update",
-      "field": "status" | "priority" | "scheduledFor",
-      "newValue": "new value",
-      "reason": "why this update"
-    }
-  ]
-}${taskList}`;
-}
-```
-
-### Usage in API Route
-
-```typescript
-// src/app/api/journal/[id]/analyze/route.ts
-import { ai } from '@/lib/ai';
-import { db } from '@/db';
-import { tasks, journalEntries } from '@/db/schema';
-
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  const entry = await db.query.journalEntries.findFirst({
-    where: eq(journalEntries.id, params.id)
-  });
-
-  if (!entry) {
-    return Response.json({ error: 'Not found' }, { status: 404 });
-  }
-
-  const existingTasks = await db.select().from(tasks);
-  const analysis = await ai.analyzeJournal(entry.content, existingTasks);
-
-  // Store analysis
-  await db.update(journalEntries)
-    .set({ aiAnalysis: JSON.stringify(analysis) })
-    .where(eq(journalEntries.id, params.id));
-
-  return Response.json(analysis);
-}
-```
+1. **Journal Analysis** - On-demand analysis of journal entries (see `docs/product.md`)
+2. **AI Chat** - Global assistant with CRUD access (see `docs/ai_chat.md`)
 
 ---
 
