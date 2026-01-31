@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Markdown } from '@/components/ui/markdown';
 import type { Project } from '@/types';
 
 const typeColors: Record<string, string> = {
@@ -33,9 +34,9 @@ export function ProjectCard({ project, taskCount = 0 }: ProjectCardProps) {
           </Badge>
         </div>
         {project.description && (
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-            {project.description}
-          </p>
+          <div className="text-sm mb-3 line-clamp-2">
+            <Markdown>{project.description}</Markdown>
+          </div>
         )}
         <div className="flex items-center gap-4 text-xs text-gray-500">
           <span>{taskCount} tasks</span>
