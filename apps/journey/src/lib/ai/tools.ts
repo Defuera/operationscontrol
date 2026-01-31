@@ -52,8 +52,25 @@ export const readTools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'getProjects',
+      description: 'Get all projects, optionally filtered by status',
+      parameters: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['active', 'completed', 'archived'],
+            description: 'Filter by project status',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'getProject',
-      description: 'Get a project and its tasks by ID',
+      description: 'Get a specific project and its tasks by ID',
       parameters: {
         type: 'object',
         properties: {
@@ -225,7 +242,7 @@ export const writeTools: ChatCompletionTool[] = [
 export const allTools = [...readTools, ...writeTools];
 
 export const writeToolNames = ['updateTask', 'createTask', 'deleteTask', 'updateProject'];
-export const readToolNames = ['searchTasks', 'getTask', 'getProject', 'getGoals'];
+export const readToolNames = ['searchTasks', 'getTask', 'getProjects', 'getProject', 'getGoals'];
 
 export function isWriteTool(name: string): boolean {
   return writeToolNames.includes(name);

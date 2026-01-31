@@ -46,6 +46,16 @@ export async function executeReadTool(name: string, args: Record<string, unknown
         return { success: true, data: result[0] as Task };
       }
 
+      case 'getProjects': {
+        let allProjects = await db.select().from(projects);
+
+        if (args.status) {
+          allProjects = allProjects.filter(p => p.status === args.status);
+        }
+
+        return { success: true, data: allProjects as Project[] };
+      }
+
       case 'getProject': {
         const project = await db.select().from(projects)
           .where(eq(projects.id, args.projectId as string));
