@@ -1,8 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import type { AIContext, AIMessage } from '@/types';
-import { confirmAction, rejectAction } from '@/actions/ai-chat';
+import { confirmAction, rejectAction, getThreadByContext } from '@/actions/ai-chat';
 
 interface ProposedAction {
   id: string;
@@ -43,15 +43,48 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
     context: null,
   });
 
+  const loadingContextRef = useRef<string | null>(null);
+
   const setContext = useCallback((context: AIContext | null) => {
     setState(prev => ({
       ...prev,
       context,
-      // Clear thread when context changes
+      // Clear thread when context changes - will be loaded by useEffect
       threadId: prev.context?.entityId !== context?.entityId ? null : prev.threadId,
       messages: prev.context?.entityId !== context?.entityId ? [] : prev.messages,
     }));
   }, []);
+
+  // Load existing thread when context changes
+  useEffect(() => {
+    const loadExistingThread = async () => {
+      if (!state.context?.type || !state.context?.entityId) return;
+      if (state.threadId) return; // Already have a thread loaded
+
+      const contextKey = `${state.context.type}:${state.context.entityId}`;
+      if (loadingContextRef.current === contextKey) return; // Already loading this context
+      loadingContextRef.current = contextKey;
+
+      try {
+        const result = await getThreadByContext(state.context.type, state.context.entityId);
+        if (result && loadingContextRef.current === contextKey) {
+          setState(prev => ({
+            ...prev,
+            threadId: result.thread.id,
+            messages: result.messages,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to load thread:', error);
+      } finally {
+        if (loadingContextRef.current === contextKey) {
+          loadingContextRef.current = null;
+        }
+      }
+    };
+
+    loadExistingThread();
+  }, [state.context?.type, state.context?.entityId, state.threadId]);
 
   const openChat = useCallback(() => {
     setState(prev => ({ ...prev, isOpen: true }));

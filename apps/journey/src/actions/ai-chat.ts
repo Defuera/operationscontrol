@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { aiThreads, aiMessages, aiActions, tasks, projects, goals } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 import type {
   AIThread,
   AIMessage,
@@ -42,7 +42,8 @@ export async function getOrCreateThread(
 
 export async function getThreadMessages(threadId: string): Promise<AIMessage[]> {
   const messages = await db.select().from(aiMessages)
-    .where(eq(aiMessages.threadId, threadId));
+    .where(eq(aiMessages.threadId, threadId))
+    .orderBy(asc(aiMessages.createdAt));
   return messages as AIMessage[];
 }
 
@@ -218,4 +219,24 @@ export async function getActionsByMessage(messageId: string): Promise<AIAction[]
   const actions = await db.select().from(aiActions)
     .where(eq(aiActions.messageId, messageId));
   return actions as AIAction[];
+}
+
+export async function getThreadByContext(
+  anchorType: AnchorEntityType,
+  anchorId: string
+): Promise<{ thread: AIThread; messages: AIMessage[] } | null> {
+  const existing = await db.select().from(aiThreads)
+    .where(eq(aiThreads.anchorEntityId, anchorId));
+
+  const thread = existing.find(t => t.anchorEntityType === anchorType);
+  if (!thread) return null;
+
+  const messages = await db.select().from(aiMessages)
+    .where(eq(aiMessages.threadId, thread.id))
+    .orderBy(asc(aiMessages.createdAt));
+
+  return {
+    thread: thread as AIThread,
+    messages: messages as AIMessage[],
+  };
 }

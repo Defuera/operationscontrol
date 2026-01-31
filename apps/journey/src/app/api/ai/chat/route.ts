@@ -44,6 +44,15 @@ interface ProposedAction {
   args: Record<string, unknown>;
 }
 
+interface PendingActionData {
+  actionType: AIActionType;
+  entityType: AIEntityType;
+  args: Record<string, unknown>;
+  entityId?: string;
+  description: string;
+  toolName: string;
+}
+
 export async function POST(request: Request) {
   try {
     const { threadId, message, context } = await request.json() as ChatRequest;
@@ -91,7 +100,7 @@ export async function POST(request: Request) {
       tool_choice: 'auto',
     });
 
-    const proposedActions: ProposedAction[] = [];
+    const pendingActionData: PendingActionData[] = [];
     let assistantMessage = response.choices[0].message;
     const toolResults: { id: string; result: string }[] = [];
 
@@ -105,24 +114,18 @@ export async function POST(request: Request) {
         const args = JSON.parse(toolCall.function.arguments);
 
         if (isWriteTool(toolName)) {
-          // Queue write action for confirmation
+          // Queue write action data for later creation (after message is saved)
           const entityType = getEntityType(toolName);
           const actionType = getActionType(toolName);
           const entityId = args.taskId || args.projectId || args.goalId;
 
-          const action = await createAction(
-            '', // Will be set after we save the message
+          pendingActionData.push({
             actionType,
             entityType,
             args,
-            entityId
-          );
-
-          proposedActions.push({
-            id: action.id,
+            entityId,
             description: describeWriteAction(toolName, args),
             toolName,
-            args,
           });
 
           toolResults.push({
@@ -163,18 +166,31 @@ export async function POST(request: Request) {
 
     const responseContent = assistantMessage.content || '';
 
-    // Save assistant message
+    // Save assistant message first
     const savedMessage = await createMessage(
       thread.id,
       'assistant',
       responseContent,
-      proposedActions.length > 0 ? proposedActions : undefined
+      pendingActionData.length > 0 ? pendingActionData : undefined
     );
 
-    // Update action messageIds
-    for (const action of proposedActions) {
-      // Note: In a real app, we'd update the action's messageId here
-      // For now, actions are linked through the response
+    // Now create actions with the saved message ID
+    const proposedActions: ProposedAction[] = [];
+    for (const actionData of pendingActionData) {
+      const action = await createAction(
+        savedMessage.id,
+        actionData.actionType,
+        actionData.entityType,
+        actionData.args,
+        actionData.entityId
+      );
+
+      proposedActions.push({
+        id: action.id,
+        description: actionData.description,
+        toolName: actionData.toolName,
+        args: actionData.args,
+      });
     }
 
     return NextResponse.json({
