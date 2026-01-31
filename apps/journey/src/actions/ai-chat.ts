@@ -125,8 +125,10 @@ export async function confirmAction(actionId: string): Promise<AIAction> {
     } else if (action.actionType === 'update' && action.entityId) {
       const [existing] = await db.select().from(tasks).where(eq(tasks.id, action.entityId));
       snapshotBefore = existing;
+      // Extract only valid task fields from payload (exclude taskId which is just for identifying the target)
+      const { taskId: _, ...taskUpdates } = payload;
       await db.update(tasks)
-        .set({ ...payload, updatedAt: now })
+        .set({ ...taskUpdates, updatedAt: now })
         .where(eq(tasks.id, action.entityId));
       const [updated] = await db.select().from(tasks).where(eq(tasks.id, action.entityId));
       snapshotAfter = updated;
@@ -139,8 +141,10 @@ export async function confirmAction(actionId: string): Promise<AIAction> {
     if (action.actionType === 'update' && action.entityId) {
       const [existing] = await db.select().from(projects).where(eq(projects.id, action.entityId));
       snapshotBefore = existing;
+      // Extract only valid project fields from payload (exclude projectId which is just for identifying the target)
+      const { projectId: _, ...projectUpdates } = payload;
       await db.update(projects)
-        .set({ ...payload, updatedAt: now })
+        .set({ ...projectUpdates, updatedAt: now })
         .where(eq(projects.id, action.entityId));
       const [updated] = await db.select().from(projects).where(eq(projects.id, action.entityId));
       snapshotAfter = updated;
@@ -149,8 +153,10 @@ export async function confirmAction(actionId: string): Promise<AIAction> {
     if (action.actionType === 'update' && action.entityId) {
       const [existing] = await db.select().from(goals).where(eq(goals.id, action.entityId));
       snapshotBefore = existing;
+      // Extract only valid goal fields from payload (exclude goalId which is just for identifying the target)
+      const { goalId: _, ...goalUpdates } = payload;
       await db.update(goals)
-        .set({ ...payload, updatedAt: now })
+        .set({ ...goalUpdates, updatedAt: now })
         .where(eq(goals.id, action.entityId));
       const [updated] = await db.select().from(goals).where(eq(goals.id, action.entityId));
       snapshotAfter = updated;
