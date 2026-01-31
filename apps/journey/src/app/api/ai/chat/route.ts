@@ -147,11 +147,14 @@ export async function POST(request: Request) {
 
       // Continue conversation with tool results
       messages.push(assistantMessage as ChatCompletionMessageParam);
-      messages.push({
-        role: 'tool',
-        tool_call_id: toolResults[toolResults.length - 1].id,
-        content: toolResults[toolResults.length - 1].result,
-      } as ChatCompletionMessageParam);
+      for (const result of toolResults) {
+        messages.push({
+          role: 'tool',
+          tool_call_id: result.id,
+          content: result.result,
+        } as ChatCompletionMessageParam);
+      }
+      toolResults.length = 0; // Clear for next iteration
 
       // Get next response
       response = await openai.chat.completions.create({
@@ -213,6 +216,7 @@ function getEntityType(toolName: string): AIEntityType {
   if (toolName.includes('Task')) return 'task';
   if (toolName.includes('Project')) return 'project';
   if (toolName.includes('Goal')) return 'goal';
+  if (toolName.includes('Journal')) return 'journal';
   return 'task';
 }
 

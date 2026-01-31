@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { aiThreads, aiMessages, aiActions, tasks, projects, goals } from '@/db/schema';
+import { aiThreads, aiMessages, aiActions, tasks, projects, goals, journalEntries } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import type {
   AIThread,
@@ -138,28 +138,73 @@ export async function confirmAction(actionId: string): Promise<AIAction> {
       await db.delete(tasks).where(eq(tasks.id, action.entityId));
     }
   } else if (action.entityType === 'project') {
-    if (action.actionType === 'update' && action.entityId) {
+    if (action.actionType === 'create') {
+      const newProject = await db.insert(projects).values({
+        id: crypto.randomUUID(),
+        name: payload.name,
+        description: payload.description || null,
+        type: payload.type,
+        goals: payload.goals || null,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      entityId = newProject[0].id;
+      snapshotAfter = newProject[0];
+    } else if (action.actionType === 'update' && action.entityId) {
       const [existing] = await db.select().from(projects).where(eq(projects.id, action.entityId));
       snapshotBefore = existing;
-      // Extract only valid project fields from payload (exclude projectId which is just for identifying the target)
       const { projectId: _, ...projectUpdates } = payload;
       await db.update(projects)
         .set({ ...projectUpdates, updatedAt: now })
         .where(eq(projects.id, action.entityId));
       const [updated] = await db.select().from(projects).where(eq(projects.id, action.entityId));
       snapshotAfter = updated;
+    } else if (action.actionType === 'delete' && action.entityId) {
+      const [existing] = await db.select().from(projects).where(eq(projects.id, action.entityId));
+      snapshotBefore = existing;
+      // Unlink tasks first
+      await db.update(tasks)
+        .set({ projectId: null })
+        .where(eq(tasks.projectId, action.entityId));
+      await db.delete(projects).where(eq(projects.id, action.entityId));
     }
   } else if (action.entityType === 'goal') {
-    if (action.actionType === 'update' && action.entityId) {
+    if (action.actionType === 'create') {
+      const newGoal = await db.insert(goals).values({
+        id: crypto.randomUUID(),
+        title: payload.title,
+        description: payload.description || null,
+        horizon: payload.horizon,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      entityId = newGoal[0].id;
+      snapshotAfter = newGoal[0];
+    } else if (action.actionType === 'update' && action.entityId) {
       const [existing] = await db.select().from(goals).where(eq(goals.id, action.entityId));
       snapshotBefore = existing;
-      // Extract only valid goal fields from payload (exclude goalId which is just for identifying the target)
       const { goalId: _, ...goalUpdates } = payload;
       await db.update(goals)
         .set({ ...goalUpdates, updatedAt: now })
         .where(eq(goals.id, action.entityId));
       const [updated] = await db.select().from(goals).where(eq(goals.id, action.entityId));
       snapshotAfter = updated;
+    } else if (action.actionType === 'delete' && action.entityId) {
+      const [existing] = await db.select().from(goals).where(eq(goals.id, action.entityId));
+      snapshotBefore = existing;
+      await db.delete(goals).where(eq(goals.id, action.entityId));
+    }
+  } else if (action.entityType === 'journal') {
+    if (action.actionType === 'create') {
+      const newEntry = await db.insert(journalEntries).values({
+        id: crypto.randomUUID(),
+        content: payload.content,
+        createdAt: now,
+      }).returning();
+      entityId = newEntry[0].id;
+      snapshotAfter = newEntry[0];
     }
   }
 

@@ -63,7 +63,7 @@ export interface Goal {
 export type AnchorEntityType = 'project' | 'task' | 'goal' | 'journal';
 export type AIMessageRole = 'user' | 'assistant';
 export type AIActionType = 'create' | 'update' | 'delete';
-export type AIEntityType = 'task' | 'project' | 'goal';
+export type AIEntityType = 'task' | 'project' | 'goal' | 'journal';
 export type AIActionStatus = 'pending' | 'confirmed' | 'rejected' | 'reverted';
 
 export interface AIThread {

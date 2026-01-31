@@ -1,7 +1,7 @@
 import { db } from '@/db';
-import { tasks, projects, goals } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
-import type { Task, Project, Goal, TaskStatus, TaskDomain, GoalStatus } from '@/types';
+import { tasks, projects, goals, journalEntries } from '@/db/schema';
+import { eq, desc } from 'drizzle-orm';
+import type { Task, Project, Goal, JournalEntry } from '@/types';
 
 export interface ToolResult {
   success: boolean;
@@ -86,6 +86,23 @@ export async function executeReadTool(name: string, args: Record<string, unknown
         return { success: true, data: allGoals as Goal[] };
       }
 
+      case 'getGoal': {
+        const result = await db.select().from(goals)
+          .where(eq(goals.id, args.goalId as string));
+        if (result.length === 0) {
+          return { success: false, error: 'Goal not found' };
+        }
+        return { success: true, data: result[0] as Goal };
+      }
+
+      case 'getJournalEntries': {
+        const limit = (args.limit as number) || 10;
+        const entries = await db.select().from(journalEntries)
+          .orderBy(desc(journalEntries.createdAt))
+          .limit(limit);
+        return { success: true, data: entries as JournalEntry[] };
+      }
+
       default:
         return { success: false, error: `Unknown tool: ${name}` };
     }
@@ -99,24 +116,49 @@ export function describeWriteAction(
   args: Record<string, unknown>
 ): string {
   switch (name) {
+    // Tasks
+    case 'createTask':
+      return `Create task: "${args.title}"`;
     case 'updateTask': {
       const changes = Object.entries(args)
         .filter(([k]) => k !== 'taskId')
         .map(([k, v]) => `${k}: ${v}`)
         .join(', ');
-      return `Update task ${args.taskId}: ${changes}`;
+      return `Update task: ${changes}`;
     }
-    case 'createTask':
-      return `Create task: "${args.title}"`;
     case 'deleteTask':
-      return `Delete task ${args.taskId}`;
+      return `Delete task`;
+
+    // Projects
+    case 'createProject':
+      return `Create project: "${args.name}"`;
     case 'updateProject': {
       const changes = Object.entries(args)
         .filter(([k]) => k !== 'projectId')
         .map(([k, v]) => `${k}: ${v}`)
         .join(', ');
-      return `Update project ${args.projectId}: ${changes}`;
+      return `Update project: ${changes}`;
     }
+    case 'deleteProject':
+      return `Delete project`;
+
+    // Goals
+    case 'createGoal':
+      return `Create ${args.horizon} goal: "${args.title}"`;
+    case 'updateGoal': {
+      const changes = Object.entries(args)
+        .filter(([k]) => k !== 'goalId')
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ');
+      return `Update goal: ${changes}`;
+    }
+    case 'deleteGoal':
+      return `Delete goal`;
+
+    // Journal
+    case 'createJournalEntry':
+      return `Create journal entry`;
+
     default:
       return `${name}: ${JSON.stringify(args)}`;
   }

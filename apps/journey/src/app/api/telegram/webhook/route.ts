@@ -229,6 +229,7 @@ function getEntityType(toolName: string): AIEntityType {
   if (toolName.includes('Task')) return 'task';
   if (toolName.includes('Project')) return 'project';
   if (toolName.includes('Goal')) return 'goal';
+  if (toolName.includes('Journal')) return 'journal';
   return 'task';
 }
 

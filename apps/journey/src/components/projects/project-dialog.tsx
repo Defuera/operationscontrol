@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ export function ProjectDialog({ project, open, onClose, onSave, onDelete }: Proj
   const [type, setType] = useState<ProjectType>('side_project');
   const [goals, setGoals] = useState('');
   const [status, setStatus] = useState<ProjectStatus>('active');
+  const [descriptionOpen, setDescriptionOpen] = useState(false);
 
   useEffect(() => {
     if (project) {
@@ -48,12 +50,14 @@ export function ProjectDialog({ project, open, onClose, onSave, onDelete }: Proj
       setType(project.type);
       setGoals(project.goals || '');
       setStatus(project.status);
+      setDescriptionOpen(!!project.description);
     } else {
       setName('');
       setDescription('');
       setType('side_project');
       setGoals('');
       setStatus('active');
+      setDescriptionOpen(false);
     }
   }, [project, open]);
 
@@ -71,11 +75,11 @@ export function ProjectDialog({ project, open, onClose, onSave, onDelete }: Proj
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{project ? 'Edit Project' : 'New Project'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto flex-1">
           <div>
             <Input
               placeholder="Project name"
@@ -85,12 +89,24 @@ export function ProjectDialog({ project, open, onClose, onSave, onDelete }: Proj
             />
           </div>
           <div>
-            <Textarea
-              placeholder="Description (optional)"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={2}
-            />
+            <button
+              type="button"
+              onClick={() => setDescriptionOpen(!descriptionOpen)}
+              className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 mb-1"
+            >
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${descriptionOpen ? '' : '-rotate-90'}`}
+              />
+              Description {description && !descriptionOpen && '•••'}
+            </button>
+            {descriptionOpen && (
+              <Textarea
+                placeholder="Description (optional, supports markdown)"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={6}
+              />
+            )}
           </div>
           <div>
             <Textarea

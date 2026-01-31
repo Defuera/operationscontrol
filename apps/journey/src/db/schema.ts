@@ -101,7 +101,7 @@ export const aiActions = sqliteTable('ai_actions', {
     enum: ['create', 'update', 'delete']
   }).notNull(),
   entityType: text('entity_type', {
-    enum: ['task', 'project', 'goal']
+    enum: ['task', 'project', 'goal', 'journal']
   }).notNull(),
   entityId: text('entity_id'),
   payload: text('payload').notNull(), // JSON string of the action data

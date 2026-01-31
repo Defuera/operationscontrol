@@ -104,6 +104,39 @@ export const readTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'getGoal',
+      description: 'Get a specific goal by ID',
+      parameters: {
+        type: 'object',
+        properties: {
+          goalId: {
+            type: 'string',
+            description: 'The goal ID',
+          },
+        },
+        required: ['goalId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getJournalEntries',
+      description: 'Get journal entries, optionally limited to recent entries',
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: {
+            type: 'number',
+            description: 'Maximum number of entries to return (default 10)',
+          },
+        },
+      },
+    },
+  },
 ];
 
 // Write tools (require confirmation)
@@ -206,6 +239,36 @@ export const writeTools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'createProject',
+      description: 'Create a new project',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            description: 'Name of the project',
+          },
+          description: {
+            type: 'string',
+            description: 'Description of the project',
+          },
+          type: {
+            type: 'string',
+            enum: ['side_project', 'learning', 'life'],
+            description: 'Type of project',
+          },
+          goals: {
+            type: 'string',
+            description: 'Goals for the project',
+          },
+        },
+        required: ['name', 'type'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'updateProject',
       description: 'Update a project name, description, goals, or status',
       parameters: {
@@ -237,12 +300,134 @@ export const writeTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'deleteProject',
+      description: 'Delete a project permanently',
+      parameters: {
+        type: 'object',
+        properties: {
+          projectId: {
+            type: 'string',
+            description: 'The ID of the project to delete',
+          },
+        },
+        required: ['projectId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createGoal',
+      description: 'Create a new goal',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Title of the goal',
+          },
+          description: {
+            type: 'string',
+            description: 'Description of the goal',
+          },
+          horizon: {
+            type: 'string',
+            enum: ['yearly', 'quarterly', 'monthly', 'weekly', 'daily'],
+            description: 'Time horizon for the goal',
+          },
+        },
+        required: ['title', 'horizon'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'updateGoal',
+      description: 'Update a goal',
+      parameters: {
+        type: 'object',
+        properties: {
+          goalId: {
+            type: 'string',
+            description: 'The ID of the goal to update',
+          },
+          title: {
+            type: 'string',
+            description: 'New title for the goal',
+          },
+          description: {
+            type: 'string',
+            description: 'New description for the goal',
+          },
+          horizon: {
+            type: 'string',
+            enum: ['yearly', 'quarterly', 'monthly', 'weekly', 'daily'],
+            description: 'New time horizon',
+          },
+          status: {
+            type: 'string',
+            enum: ['active', 'completed', 'archived'],
+            description: 'New status for the goal',
+          },
+        },
+        required: ['goalId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'deleteGoal',
+      description: 'Delete a goal permanently',
+      parameters: {
+        type: 'object',
+        properties: {
+          goalId: {
+            type: 'string',
+            description: 'The ID of the goal to delete',
+          },
+        },
+        required: ['goalId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createJournalEntry',
+      description: 'Create a new journal entry',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: {
+            type: 'string',
+            description: 'Content of the journal entry',
+          },
+        },
+        required: ['content'],
+      },
+    },
+  },
 ];
 
 export const allTools = [...readTools, ...writeTools];
 
-export const writeToolNames = ['updateTask', 'createTask', 'deleteTask', 'updateProject'];
-export const readToolNames = ['searchTasks', 'getTask', 'getProjects', 'getProject', 'getGoals'];
+export const writeToolNames = [
+  'createTask', 'updateTask', 'deleteTask',
+  'createProject', 'updateProject', 'deleteProject',
+  'createGoal', 'updateGoal', 'deleteGoal',
+  'createJournalEntry',
+];
+export const readToolNames = [
+  'searchTasks', 'getTask',
+  'getProjects', 'getProject',
+  'getGoals', 'getGoal',
+  'getJournalEntries',
+];
 
 export function isWriteTool(name: string): boolean {
   return writeToolNames.includes(name);
