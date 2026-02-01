@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -117,12 +116,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <main className="min-h-screen p-8">
-      <div className="flex items-center gap-4 mb-6">
-        <Link href="/projects">
-          <Button variant="outline" size="sm">← Projects</Button>
-        </Link>
-      </div>
-
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold mb-2">{project.name}</h1>

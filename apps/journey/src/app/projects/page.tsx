@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ProjectCard, ProjectDialog } from '@/components/projects';
-import { getProjects, createProject, deleteProject } from '@/actions/projects';
+import { getProjects, createProject } from '@/actions/projects';
 import { getTasks } from '@/actions/tasks';
 import type { Project, ProjectType, Task } from '@/types';
 
@@ -47,12 +46,7 @@ export default function ProjectsPage() {
   return (
     <main className="min-h-screen p-8">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <Button variant="outline" size="sm">← Back</Button>
-          </Link>
-          <h1 className="text-2xl font-bold">Projects</h1>
-        </div>
+        <h1 className="text-2xl font-bold">Projects</h1>
         <Button onClick={() => setDialogOpen(true)}>+ New Project</Button>
       </div>
 

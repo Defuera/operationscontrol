@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import {
   DndContext,
   DragEndEvent,
@@ -129,22 +128,6 @@ export function Board({ initialTasks }: BoardProps) {
 
   return (
     <div className="h-full">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">The Journey</h1>
-        <div className="flex items-center gap-2">
-          <Link href="/goals">
-            <Button variant="outline">Goals</Button>
-          </Link>
-          <Link href="/projects">
-            <Button variant="outline">Projects</Button>
-          </Link>
-          <Link href="/journal">
-            <Button variant="outline">Journal</Button>
-          </Link>
-          <Button onClick={handleNewTask}>+ New Task</Button>
-        </div>
-      </div>
-
       <div className="flex items-center justify-between mb-4">
         <ViewSwitcher
           view={view}
@@ -152,17 +135,20 @@ export function Board({ initialTasks }: BoardProps) {
           currentDate={currentDate}
           onDateChange={setCurrentDate}
         />
-        <div className="flex gap-1">
-          {domains.map(d => (
-            <Button
-              key={d}
-              variant={domainFilter === d ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setDomainFilter(d)}
-            >
-              {d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)}
-            </Button>
-          ))}
+        <div className="flex items-center gap-4">
+          <div className="flex gap-1">
+            {domains.map(d => (
+              <Button
+                key={d}
+                variant={domainFilter === d ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDomainFilter(d)}
+              >
+                {d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)}
+              </Button>
+            ))}
+          </div>
+          <Button onClick={handleNewTask}>+ New Task</Button>
         </div>
       </div>
 
