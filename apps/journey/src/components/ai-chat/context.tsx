@@ -158,27 +158,53 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
 
   const confirmPendingAction = useCallback(async (actionId: string) => {
     try {
+      const action = state.pendingActions.find(a => a.id === actionId);
       await confirmAction(actionId);
+
+      // Add feedback message to chat
+      const feedbackMessage: AIMessage = {
+        id: crypto.randomUUID(),
+        threadId: state.threadId || '',
+        role: 'assistant',
+        content: `✓ Action completed: ${action?.description || 'Unknown action'}`,
+        toolCalls: null,
+        createdAt: new Date().toISOString(),
+      };
+
       setState(prev => ({
         ...prev,
+        messages: [...prev.messages, feedbackMessage],
         pendingActions: prev.pendingActions.filter(a => a.id !== actionId),
       }));
     } catch (error) {
       console.error('Confirm action error:', error);
     }
-  }, []);
+  }, [state.pendingActions, state.threadId]);
 
   const rejectPendingAction = useCallback(async (actionId: string) => {
     try {
+      const action = state.pendingActions.find(a => a.id === actionId);
       await rejectAction(actionId);
+
+      // Add feedback message to chat
+      const feedbackMessage: AIMessage = {
+        id: crypto.randomUUID(),
+        threadId: state.threadId || '',
+        role: 'assistant',
+        content: `✗ Action cancelled: ${action?.description || 'Unknown action'}`,
+        toolCalls: null,
+        createdAt: new Date().toISOString(),
+      };
+
       setState(prev => ({
         ...prev,
+        messages: [...prev.messages, feedbackMessage],
         pendingActions: prev.pendingActions.filter(a => a.id !== actionId),
       }));
     } catch (error) {
       console.error('Reject action error:', error);
     }
-  }, []);
+  }, [state.pendingActions, state.threadId]);
 
   const clearMessages = useCallback(() => {
     setState(prev => ({

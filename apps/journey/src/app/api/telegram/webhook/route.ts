@@ -21,11 +21,15 @@ const SYSTEM_PROMPT = `You are a helpful productivity assistant for "The Journey
 Your capabilities:
 - Search and view tasks, projects, and goals
 - Create, update, and delete tasks
-- Update project details
+- Create, update, and delete projects and goals
+- Create journal entries
 
-Be very concise - this is a chat interface. Use short responses.
-When listing items, use a simple format.
-When proposing changes, be specific about what will change.`;
+IMPORTANT RULES:
+1. When user asks to modify/update/rename/change something, ALWAYS search first to find the entity ID, then use the update tool
+2. NEVER create a new entity when user asks to modify an existing one
+3. Be very concise - this is a chat interface
+4. When listing items, use a simple format
+5. When proposing changes, be specific about what will change`;
 
 // Store pending actions per chat (in-memory for now)
 const pendingActions = new Map<number, { id: string; description: string }[]>();
@@ -123,6 +127,14 @@ async function handleCommand(chatId: number, text: string): Promise<boolean> {
   }
 }
 
+interface PendingActionData {
+  actionType: AIActionType;
+  entityType: AIEntityType;
+  args: Record<string, unknown>;
+  entityId?: string;
+  description: string;
+}
+
 async function handleAIChat(chatId: number, text: string) {
   try {
     // Use chatId as anchor to maintain conversation
@@ -152,7 +164,8 @@ async function handleAIChat(chatId: number, text: string) {
       tool_choice: 'auto',
     });
 
-    const proposedActions: { id: string; description: string }[] = [];
+    // Collect pending action data (don't create in DB yet - need messageId first)
+    const pendingActionData: PendingActionData[] = [];
     let assistantMessage = response.choices[0].message;
     const toolResults: { id: string; result: string }[] = [];
 
@@ -167,10 +180,10 @@ async function handleAIChat(chatId: number, text: string) {
           const entityType = getEntityType(toolName);
           const actionType = getActionType(toolName);
           const entityId = args.taskId || args.projectId || args.goalId;
-
-          const action = await createAction('', actionType, entityType, args, entityId);
           const description = describeWriteAction(toolName, args);
-          proposedActions.push({ id: action.id, description });
+
+          // Store for later creation after we have the message ID
+          pendingActionData.push({ actionType, entityType, args, entityId, description });
 
           toolResults.push({
             id: toolCall.id,
@@ -199,7 +212,22 @@ async function handleAIChat(chatId: number, text: string) {
     }
 
     const responseContent = assistantMessage.content || 'I couldn\'t process that.';
-    await createMessage(thread.id, 'assistant', responseContent);
+
+    // Save assistant message first to get the ID
+    const savedMessage = await createMessage(thread.id, 'assistant', responseContent);
+
+    // Now create the actions with the proper message ID
+    const proposedActions: { id: string; description: string }[] = [];
+    for (const data of pendingActionData) {
+      const action = await createAction(
+        savedMessage.id,
+        data.actionType,
+        data.entityType,
+        data.args,
+        data.entityId
+      );
+      proposedActions.push({ id: action.id, description: data.description });
+    }
 
     // Send response
     await sendMessage(chatId, responseContent);
