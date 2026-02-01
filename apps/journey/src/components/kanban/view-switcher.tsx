@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 
-export type ViewType = 'day' | 'week' | 'quarter';
+export type ViewType = 'day' | 'week' | 'quarter' | 'all';
 
 interface ViewSwitcherProps {
   view: ViewType;
@@ -12,7 +12,7 @@ interface ViewSwitcherProps {
 }
 
 export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange }: ViewSwitcherProps) {
-  const views: ViewType[] = ['day', 'week', 'quarter'];
+  const views: ViewType[] = ['day', 'week', 'quarter', 'all'];
 
   const navigatePrev = () => {
     const newDate = new Date(currentDate);

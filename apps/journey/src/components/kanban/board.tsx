@@ -42,11 +42,12 @@ export function Board({ initialTasks }: BoardProps) {
   );
 
   // Map view to boardScope (day view shows day tasks, week shows week, etc.)
-  const viewToScope: Record<ViewType, BoardScope> = { day: 'day', week: 'week', quarter: 'quarter' };
-  const currentScope = viewToScope[view];
+  // 'all' view shows all tasks regardless of boardScope
+  const viewToScope: Record<Exclude<ViewType, 'all'>, BoardScope> = { day: 'day', week: 'week', quarter: 'quarter' };
+  const currentScope = view === 'all' ? null : viewToScope[view];
 
   const filteredTasks = tasks
-    .filter(t => t.boardScope === currentScope)
+    .filter(t => view === 'all' || t.boardScope === currentScope)
     .filter(t => domainFilter === 'all' || t.domain === domainFilter);
 
   const tasksByStatus = statuses.reduce((acc, status) => {
@@ -103,7 +104,11 @@ export function Board({ initialTasks }: BoardProps) {
         prev.map(t => (t.id === editingTask.id ? { ...t, ...data } : t))
       );
     } else {
-      const newTask = await createTask({ ...data, boardScope: data.boardScope || currentScope });
+      // In 'all' view, don't auto-assign boardScope unless specified
+      const newTask = await createTask({
+        ...data,
+        boardScope: data.boardScope || (currentScope ?? undefined),
+      });
       setTasks(prev => [...prev, newTask]);
     }
     setDialogOpen(false);
@@ -161,7 +166,7 @@ export function Board({ initialTasks }: BoardProps) {
         </div>
       </div>
 
-      {view === 'day' && (
+      {(view === 'day' || view === 'all') && (
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
@@ -206,7 +211,7 @@ export function Board({ initialTasks }: BoardProps) {
         onSave={handleSave}
         onDelete={editingTask ? handleDelete : undefined}
         showBoardScope={true}
-        defaultBoardScope={currentScope}
+        defaultBoardScope={currentScope ?? undefined}
       />
     </div>
   );

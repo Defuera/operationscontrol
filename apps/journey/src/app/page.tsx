@@ -1,8 +1,8 @@
 import { Board } from '@/components/kanban';
-import { getBoardTasks } from '@/actions/tasks';
+import { getTasks } from '@/actions/tasks';
 
 export default async function Home() {
-  const tasks = await getBoardTasks();
+  const tasks = await getTasks();
 
   return (
     <main className="min-h-screen p-8">
