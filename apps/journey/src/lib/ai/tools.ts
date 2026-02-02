@@ -52,11 +52,15 @@ export const readTools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
-      name: 'getProjects',
-      description: 'Get all projects, optionally filtered by status',
+      name: 'searchProjects',
+      description: 'Search for projects by name or filter by status',
       parameters: {
         type: 'object',
         properties: {
+          query: {
+            type: 'string',
+            description: 'Search query to match against project names',
+          },
           status: {
             type: 'string',
             enum: ['active', 'completed', 'archived'],
@@ -86,11 +90,15 @@ export const readTools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
-      name: 'getGoals',
-      description: 'Get all goals, optionally filtered by horizon or status',
+      name: 'searchGoals',
+      description: 'Search for goals by title or filter by horizon/status',
       parameters: {
         type: 'object',
         properties: {
+          query: {
+            type: 'string',
+            description: 'Search query to match against goal titles',
+          },
           horizon: {
             type: 'string',
             description: 'Filter by time horizon (yearly, quarterly, monthly, weekly, daily)',
@@ -124,16 +132,37 @@ export const readTools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
-      name: 'getJournalEntries',
-      description: 'Get journal entries, optionally limited to recent entries',
+      name: 'searchJournalEntries',
+      description: 'Search for journal entries by content',
       parameters: {
         type: 'object',
         properties: {
+          query: {
+            type: 'string',
+            description: 'Search query to match against journal content',
+          },
           limit: {
             type: 'number',
             description: 'Maximum number of entries to return (default 10)',
           },
         },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getJournalEntry',
+      description: 'Get a specific journal entry by ID',
+      parameters: {
+        type: 'object',
+        properties: {
+          entryId: {
+            type: 'string',
+            description: 'The journal entry ID',
+          },
+        },
+        required: ['entryId'],
       },
     },
   },
@@ -412,6 +441,44 @@ export const writeTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'updateJournalEntry',
+      description: 'Update a journal entry',
+      parameters: {
+        type: 'object',
+        properties: {
+          entryId: {
+            type: 'string',
+            description: 'The ID of the journal entry to update',
+          },
+          content: {
+            type: 'string',
+            description: 'New content for the journal entry',
+          },
+        },
+        required: ['entryId', 'content'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'deleteJournalEntry',
+      description: 'Delete a journal entry permanently',
+      parameters: {
+        type: 'object',
+        properties: {
+          entryId: {
+            type: 'string',
+            description: 'The ID of the journal entry to delete',
+          },
+        },
+        required: ['entryId'],
+      },
+    },
+  },
 ];
 
 export const allTools = [...readTools, ...writeTools];
@@ -420,13 +487,13 @@ export const writeToolNames = [
   'createTask', 'updateTask', 'deleteTask',
   'createProject', 'updateProject', 'deleteProject',
   'createGoal', 'updateGoal', 'deleteGoal',
-  'createJournalEntry',
+  'createJournalEntry', 'updateJournalEntry', 'deleteJournalEntry',
 ];
 export const readToolNames = [
   'searchTasks', 'getTask',
-  'getProjects', 'getProject',
-  'getGoals', 'getGoal',
-  'getJournalEntries',
+  'searchProjects', 'getProject',
+  'searchGoals', 'getGoal',
+  'searchJournalEntries', 'getJournalEntry',
 ];
 
 export function isWriteTool(name: string): boolean {

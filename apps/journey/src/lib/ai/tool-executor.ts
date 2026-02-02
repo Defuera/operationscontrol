@@ -46,11 +46,17 @@ export async function executeReadTool(name: string, args: Record<string, unknown
         return { success: true, data: result[0] as Task };
       }
 
-      case 'getProjects': {
+      case 'searchProjects': {
         let allProjects = await db.select().from(projects);
 
         if (args.status) {
           allProjects = allProjects.filter(p => p.status === args.status);
+        }
+        if (args.query) {
+          const searchTerm = (args.query as string).toLowerCase();
+          allProjects = allProjects.filter(p =>
+            p.name.toLowerCase().includes(searchTerm)
+          );
         }
 
         return { success: true, data: allProjects as Project[] };
@@ -73,7 +79,7 @@ export async function executeReadTool(name: string, args: Record<string, unknown
         };
       }
 
-      case 'getGoals': {
+      case 'searchGoals': {
         let allGoals = await db.select().from(goals);
 
         if (args.horizon) {
@@ -81,6 +87,12 @@ export async function executeReadTool(name: string, args: Record<string, unknown
         }
         if (args.status) {
           allGoals = allGoals.filter(g => g.status === args.status);
+        }
+        if (args.query) {
+          const searchTerm = (args.query as string).toLowerCase();
+          allGoals = allGoals.filter(g =>
+            g.title.toLowerCase().includes(searchTerm)
+          );
         }
 
         return { success: true, data: allGoals as Goal[] };
@@ -95,12 +107,29 @@ export async function executeReadTool(name: string, args: Record<string, unknown
         return { success: true, data: result[0] as Goal };
       }
 
-      case 'getJournalEntries': {
+      case 'searchJournalEntries': {
         const limit = (args.limit as number) || 10;
-        const entries = await db.select().from(journalEntries)
+        let entries = await db.select().from(journalEntries)
           .orderBy(desc(journalEntries.createdAt))
           .limit(limit);
+
+        if (args.query) {
+          const searchTerm = (args.query as string).toLowerCase();
+          entries = entries.filter(e =>
+            e.content.toLowerCase().includes(searchTerm)
+          );
+        }
+
         return { success: true, data: entries as JournalEntry[] };
+      }
+
+      case 'getJournalEntry': {
+        const result = await db.select().from(journalEntries)
+          .where(eq(journalEntries.id, args.entryId as string));
+        if (result.length === 0) {
+          return { success: false, error: 'Journal entry not found' };
+        }
+        return { success: true, data: result[0] as JournalEntry };
       }
 
       default:
@@ -158,6 +187,10 @@ export function describeWriteAction(
     // Journal
     case 'createJournalEntry':
       return `Create journal entry`;
+    case 'updateJournalEntry':
+      return `Update journal entry`;
+    case 'deleteJournalEntry':
+      return `Delete journal entry`;
 
     default:
       return `${name}: ${JSON.stringify(args)}`;

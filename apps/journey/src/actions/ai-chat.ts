@@ -205,6 +205,19 @@ export async function confirmAction(actionId: string): Promise<AIAction> {
       }).returning();
       entityId = newEntry[0].id;
       snapshotAfter = newEntry[0];
+    } else if (action.actionType === 'update' && action.entityId) {
+      const [existing] = await db.select().from(journalEntries).where(eq(journalEntries.id, action.entityId));
+      snapshotBefore = existing;
+      const { entryId: _, ...entryUpdates } = payload;
+      await db.update(journalEntries)
+        .set(entryUpdates)
+        .where(eq(journalEntries.id, action.entityId));
+      const [updated] = await db.select().from(journalEntries).where(eq(journalEntries.id, action.entityId));
+      snapshotAfter = updated;
+    } else if (action.actionType === 'delete' && action.entityId) {
+      const [existing] = await db.select().from(journalEntries).where(eq(journalEntries.id, action.entityId));
+      snapshotBefore = existing;
+      await db.delete(journalEntries).where(eq(journalEntries.id, action.entityId));
     }
   }
 
