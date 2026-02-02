@@ -7,10 +7,18 @@ import { getProjects, createProject } from '@/actions/projects';
 import { getTasks } from '@/actions/tasks';
 import type { Project, ProjectType, Task } from '@/types';
 
+const PROJECT_TYPES: { label: string; value: ProjectType | 'all' }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Side Project', value: 'side_project' },
+  { label: 'Learning', value: 'learning' },
+  { label: 'Life', value: 'life' },
+];
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<ProjectType | 'all'>('all');
 
   useEffect(() => {
     loadData();
@@ -39,15 +47,33 @@ export default function ProjectsPage() {
   const getTaskCount = (projectId: string) =>
     tasks.filter(t => t.projectId === projectId).length;
 
-  const activeProjects = projects.filter(p => p.status === 'active');
-  const completedProjects = projects.filter(p => p.status === 'completed');
-  const archivedProjects = projects.filter(p => p.status === 'archived');
+  const filteredProjects =
+    typeFilter === 'all'
+      ? projects
+      : projects.filter(p => p.type === typeFilter);
+
+  const activeProjects = filteredProjects.filter(p => p.status === 'active');
+  const completedProjects = filteredProjects.filter(p => p.status === 'completed');
+  const archivedProjects = filteredProjects.filter(p => p.status === 'archived');
 
   return (
     <main className="min-h-screen p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Projects</h1>
         <Button onClick={() => setDialogOpen(true)}>+ New Project</Button>
+      </div>
+
+      <div className="flex gap-2 mb-6">
+        {PROJECT_TYPES.map(({ label, value }) => (
+          <Button
+            key={value}
+            variant={typeFilter === value ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setTypeFilter(value)}
+          >
+            {label}
+          </Button>
+        ))}
       </div>
 
       {activeProjects.length > 0 && (
@@ -98,6 +124,12 @@ export default function ProjectsPage() {
       {projects.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <p>No projects yet. Create your first project to get started.</p>
+        </div>
+      )}
+
+      {projects.length > 0 && filteredProjects.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          <p>No projects match this filter.</p>
         </div>
       )}
 
