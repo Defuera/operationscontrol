@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useAIChat } from './context';
 import { ChatMessages } from './chat-messages';
 import { ChatInput } from './chat-input';
-import { ActionConfirmation } from './action-confirmation';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,18 +13,17 @@ export function AIChatDrawer() {
   const {
     isOpen,
     messages,
-    pendingActions,
     isLoading,
     context,
     toggleChat,
     closeChat,
     sendMessage,
-    confirmPendingAction,
-    rejectPendingAction,
+    confirmAction,
+    rejectAction,
   } = useAIChat();
 
   const handleConfirm = async (actionId: string) => {
-    await confirmPendingAction(actionId);
+    await confirmAction(actionId);
     router.refresh();
   };
 
@@ -66,13 +64,11 @@ export function AIChatDrawer() {
         </div>
 
         {/* Messages */}
-        <ChatMessages messages={messages} isLoading={isLoading} />
-
-        {/* Pending actions */}
-        <ActionConfirmation
-          actions={pendingActions}
-          onConfirm={handleConfirm}
-          onReject={rejectPendingAction}
+        <ChatMessages
+          messages={messages}
+          isLoading={isLoading}
+          onConfirmAction={handleConfirm}
+          onRejectAction={rejectAction}
         />
 
         {/* Input */}

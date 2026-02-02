@@ -2,20 +2,12 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import type { AIContext, AIMessage } from '@/types';
-import { confirmAction, rejectAction, getThreadByContext } from '@/actions/ai-chat';
-
-interface ProposedAction {
-  id: string;
-  description: string;
-  toolName: string;
-  args: Record<string, unknown>;
-}
+import { confirmAction as confirmActionServer, rejectAction as rejectActionServer, getThreadByContext } from '@/actions/ai-chat';
 
 interface AIChatState {
   isOpen: boolean;
   threadId: string | null;
   messages: AIMessage[];
-  pendingActions: ProposedAction[];
   isLoading: boolean;
   context: AIContext | null;
 }
@@ -26,8 +18,8 @@ interface AIChatContextValue extends AIChatState {
   closeChat: () => void;
   toggleChat: () => void;
   sendMessage: (message: string) => Promise<void>;
-  confirmPendingAction: (actionId: string) => Promise<void>;
-  rejectPendingAction: (actionId: string) => Promise<void>;
+  confirmAction: (actionId: string) => Promise<void>;
+  rejectAction: (actionId: string) => Promise<void>;
   clearMessages: () => void;
 }
 
@@ -38,7 +30,6 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
     isOpen: false,
     threadId: null,
     messages: [],
-    pendingActions: [],
     isLoading: false,
     context: null,
   });
@@ -147,7 +138,6 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
         ...prev,
         threadId: data.threadId,
         messages: [...prev.messages, assistantMessage],
-        pendingActions: data.proposedActions || [],
         isLoading: false,
       }));
     } catch (error) {
@@ -156,62 +146,27 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
     }
   }, [state.threadId, state.context]);
 
-  const confirmPendingAction = useCallback(async (actionId: string) => {
+  const confirmAction = useCallback(async (actionId: string) => {
     try {
-      const action = state.pendingActions.find(a => a.id === actionId);
-      await confirmAction(actionId);
-
-      // Add feedback message to chat
-      const feedbackMessage: AIMessage = {
-        id: crypto.randomUUID(),
-        threadId: state.threadId || '',
-        role: 'assistant',
-        content: `✓ Action completed: ${action?.description || 'Unknown action'}`,
-        toolCalls: null,
-        createdAt: new Date().toISOString(),
-      };
-
-      setState(prev => ({
-        ...prev,
-        messages: [...prev.messages, feedbackMessage],
-        pendingActions: prev.pendingActions.filter(a => a.id !== actionId),
-      }));
+      await confirmActionServer(actionId);
     } catch (error) {
       console.error('Confirm action error:', error);
     }
-  }, [state.pendingActions, state.threadId]);
+  }, []);
 
-  const rejectPendingAction = useCallback(async (actionId: string) => {
+  const rejectAction = useCallback(async (actionId: string) => {
     try {
-      const action = state.pendingActions.find(a => a.id === actionId);
-      await rejectAction(actionId);
-
-      // Add feedback message to chat
-      const feedbackMessage: AIMessage = {
-        id: crypto.randomUUID(),
-        threadId: state.threadId || '',
-        role: 'assistant',
-        content: `✗ Action cancelled: ${action?.description || 'Unknown action'}`,
-        toolCalls: null,
-        createdAt: new Date().toISOString(),
-      };
-
-      setState(prev => ({
-        ...prev,
-        messages: [...prev.messages, feedbackMessage],
-        pendingActions: prev.pendingActions.filter(a => a.id !== actionId),
-      }));
+      await rejectActionServer(actionId);
     } catch (error) {
       console.error('Reject action error:', error);
     }
-  }, [state.pendingActions, state.threadId]);
+  }, []);
 
   const clearMessages = useCallback(() => {
     setState(prev => ({
       ...prev,
       messages: [],
       threadId: null,
-      pendingActions: [],
     }));
   }, []);
 
@@ -224,8 +179,8 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
         closeChat,
         toggleChat,
         sendMessage,
-        confirmPendingAction,
-        rejectPendingAction,
+        confirmAction,
+        rejectAction,
         clearMessages,
       }}
     >
