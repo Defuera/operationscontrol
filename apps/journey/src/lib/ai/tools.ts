@@ -53,13 +53,18 @@ export const readTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'searchProjects',
-      description: 'Search for projects by name or filter by status',
+      description: 'Search for projects by name, type, or status',
       parameters: {
         type: 'object',
         properties: {
           query: {
             type: 'string',
             description: 'Search query to match against project names',
+          },
+          type: {
+            type: 'string',
+            enum: ['side_project', 'learning', 'life'],
+            description: 'Filter by project type',
           },
           status: {
             type: 'string',

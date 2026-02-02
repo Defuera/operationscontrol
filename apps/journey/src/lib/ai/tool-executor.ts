@@ -49,6 +49,9 @@ export async function executeReadTool(name: string, args: Record<string, unknown
       case 'searchProjects': {
         let allProjects = await db.select().from(projects);
 
+        if (args.type) {
+          allProjects = allProjects.filter(p => p.type === args.type);
+        }
         if (args.status) {
           allProjects = allProjects.filter(p => p.status === args.status);
         }
