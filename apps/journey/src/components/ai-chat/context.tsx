@@ -2,11 +2,19 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import type { AIMessage } from '@/types';
-import { confirmAction as confirmActionServer, rejectAction as rejectActionServer, getThreadByPath } from '@/actions/ai-chat';
+import {
+  confirmAction as confirmActionServer,
+  rejectAction as rejectActionServer,
+  getThreadsByPath,
+  getThreadById,
+  createThread as createThreadServer,
+  type ThreadSummary,
+} from '@/actions/ai-chat';
 
 interface AIChatState {
   isOpen: boolean;
   threadId: string | null;
+  threads: ThreadSummary[];
   messages: AIMessage[];
   isLoading: boolean;
   path: string | null;
@@ -21,6 +29,8 @@ interface AIChatContextValue extends AIChatState {
   confirmAction: (actionId: string) => Promise<void>;
   rejectAction: (actionId: string) => Promise<void>;
   clearMessages: () => void;
+  switchThread: (threadId: string) => Promise<void>;
+  createNewThread: () => Promise<void>;
 }
 
 const AIChatContext = createContext<AIChatContextValue | null>(null);
@@ -29,6 +39,7 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AIChatState>({
     isOpen: false,
     threadId: null,
+    threads: [],
     messages: [],
     isLoading: false,
     path: null,
@@ -42,30 +53,40 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
       path,
       // Clear thread when path changes - will be loaded by useEffect
       threadId: prev.path !== path ? null : prev.threadId,
+      threads: prev.path !== path ? [] : prev.threads,
       messages: prev.path !== path ? [] : prev.messages,
     }));
   }, []);
 
-  // Load existing thread when path changes
+  // Load threads list and most recent thread when path changes
   useEffect(() => {
-    const loadExistingThread = async () => {
+    const loadThreads = async () => {
       if (!state.path) return;
       if (state.threadId) return; // Already have a thread loaded
 
-      if (loadingPathRef.current === state.path) return; // Already loading this path
+      if (loadingPathRef.current === state.path) return;
       loadingPathRef.current = state.path;
 
       try {
-        const result = await getThreadByPath(state.path);
-        if (result && loadingPathRef.current === state.path) {
-          setState(prev => ({
-            ...prev,
-            threadId: result.thread.id,
-            messages: result.messages,
-          }));
+        const threads = await getThreadsByPath(state.path);
+        if (loadingPathRef.current !== state.path) return;
+
+        if (threads.length > 0) {
+          // Load the most recent thread's messages
+          const result = await getThreadById(threads[0].id);
+          if (result && loadingPathRef.current === state.path) {
+            setState(prev => ({
+              ...prev,
+              threads,
+              threadId: result.thread.id,
+              messages: result.messages,
+            }));
+          }
+        } else {
+          setState(prev => ({ ...prev, threads: [] }));
         }
       } catch (error) {
-        console.error('Failed to load thread:', error);
+        console.error('Failed to load threads:', error);
       } finally {
         if (loadingPathRef.current === state.path) {
           loadingPathRef.current = null;
@@ -73,7 +94,7 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    loadExistingThread();
+    loadThreads();
   }, [state.path, state.threadId]);
 
   const openChat = useCallback(() => {
@@ -133,12 +154,25 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
 
-      setState(prev => ({
-        ...prev,
-        threadId: data.threadId,
-        messages: [...prev.messages, assistantMessage],
-        isLoading: false,
-      }));
+      // If this was a new thread, refresh the threads list
+      const isNewThread = !state.threadId;
+      if (isNewThread && state.path) {
+        const threads = await getThreadsByPath(state.path);
+        setState(prev => ({
+          ...prev,
+          threads,
+          threadId: data.threadId,
+          messages: [...prev.messages, assistantMessage],
+          isLoading: false,
+        }));
+      } else {
+        setState(prev => ({
+          ...prev,
+          threadId: data.threadId,
+          messages: [...prev.messages, assistantMessage],
+          isLoading: false,
+        }));
+      }
     } catch (error) {
       console.error('Send message error:', error);
       setState(prev => ({ ...prev, isLoading: false }));
@@ -169,6 +203,38 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const switchThread = useCallback(async (threadId: string) => {
+    try {
+      const result = await getThreadById(threadId);
+      if (result) {
+        setState(prev => ({
+          ...prev,
+          threadId: result.thread.id,
+          messages: result.messages,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to switch thread:', error);
+    }
+  }, []);
+
+  const createNewThread = useCallback(async () => {
+    if (!state.path) return;
+
+    try {
+      const thread = await createThreadServer(state.path);
+      // Add to threads list and switch to it
+      setState(prev => ({
+        ...prev,
+        threads: [{ id: thread.id, title: null, messageCount: 0, createdAt: thread.createdAt, updatedAt: thread.updatedAt }, ...prev.threads],
+        threadId: thread.id,
+        messages: [],
+      }));
+    } catch (error) {
+      console.error('Failed to create thread:', error);
+    }
+  }, [state.path]);
+
   return (
     <AIChatContext.Provider
       value={{
@@ -181,6 +247,8 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
         confirmAction,
         rejectAction,
         clearMessages,
+        switchThread,
+        createNewThread,
       }}
     >
       {children}

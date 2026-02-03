@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { aiThreads, aiMessages, aiActions, tasks, projects, goals, journalEntries } from '@/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, desc, sql } from 'drizzle-orm';
 import type {
   AIThread,
   AIMessage,
@@ -292,6 +292,77 @@ export async function getThreadByPath(
 
   const messages = await db.select().from(aiMessages)
     .where(eq(aiMessages.threadId, thread.id))
+    .orderBy(asc(aiMessages.createdAt));
+
+  return {
+    thread: thread as AIThread,
+    messages: messages as AIMessage[],
+  };
+}
+
+export interface ThreadSummary {
+  id: string;
+  title: string | null;
+  messageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getThreadsByPath(anchorPath: string): Promise<ThreadSummary[]> {
+  // Get threads first
+  const threadRows = await db
+    .select()
+    .from(aiThreads)
+    .where(eq(aiThreads.anchorPath, anchorPath))
+    .orderBy(desc(aiThreads.updatedAt));
+
+  // Get message counts for these threads
+  const threadIds = threadRows.map(t => t.id);
+  if (threadIds.length === 0) return [];
+
+  const counts = await db
+    .select({
+      threadId: aiMessages.threadId,
+      count: sql<number>`COUNT(*)`.as('count'),
+    })
+    .from(aiMessages)
+    .where(sql`${aiMessages.threadId} IN (${sql.join(threadIds.map(id => sql`${id}`), sql`, `)})`)
+    .groupBy(aiMessages.threadId);
+
+  const countMap = new Map(counts.map(c => [c.threadId, c.count]));
+
+  return threadRows.map(t => ({
+    id: t.id,
+    title: t.title,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+    messageCount: countMap.get(t.id) || 0,
+  }));
+}
+
+export async function createThread(anchorPath: string): Promise<AIThread> {
+  const now = new Date().toISOString();
+  const thread = await db.insert(aiThreads).values({
+    id: crypto.randomUUID(),
+    anchorPath,
+    title: null,
+    createdAt: now,
+    updatedAt: now,
+  }).returning();
+
+  return thread[0] as AIThread;
+}
+
+export async function getThreadById(
+  threadId: string
+): Promise<{ thread: AIThread; messages: AIMessage[] } | null> {
+  const [thread] = await db.select().from(aiThreads)
+    .where(eq(aiThreads.id, threadId));
+
+  if (!thread) return null;
+
+  const messages = await db.select().from(aiMessages)
+    .where(eq(aiMessages.threadId, threadId))
     .orderBy(asc(aiMessages.createdAt));
 
   return {

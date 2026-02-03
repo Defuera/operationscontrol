@@ -1,12 +1,31 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
 import { useAIChat } from './context';
 import { ChatMessages } from './chat-messages';
 import { ChatInput } from './chat-input';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, X } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { MessageCircle, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+function formatThreadDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+
+  if (isToday) {
+    return format(date, 'h:mm a');
+  }
+  return format(date, 'MMM d, h:mm a');
+}
 
 export function AIChatDrawer() {
   const router = useRouter();
@@ -15,11 +34,15 @@ export function AIChatDrawer() {
     messages,
     isLoading,
     path,
+    threadId,
+    threads,
     toggleChat,
     closeChat,
     sendMessage,
     confirmAction,
     rejectAction,
+    switchThread,
+    createNewThread,
   } = useAIChat();
 
   const handleConfirm = async (actionId: string) => {
@@ -49,18 +72,51 @@ export function AIChatDrawer() {
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div>
-            <h2 className="font-semibold">AI Assistant</h2>
-            {path && (
-              <p className="text-xs text-muted-foreground">
-                {path}
-              </p>
-            )}
+        <div className="flex flex-col border-b">
+          <div className="flex items-center justify-between p-4 pb-2">
+            <div>
+              <h2 className="font-semibold">AI Assistant</h2>
+              {path && (
+                <p className="text-xs text-muted-foreground">
+                  {path}
+                </p>
+              )}
+            </div>
+            <Button variant="ghost" size="icon" onClick={closeChat}>
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={closeChat}>
-            <X className="h-4 w-4" />
-          </Button>
+
+          {/* Thread switcher */}
+          <div className="flex items-center gap-2 px-4 pb-3">
+            <Select
+              value={threadId || ''}
+              onValueChange={(value) => switchThread(value)}
+            >
+              <SelectTrigger className="flex-1 h-8 text-xs">
+                <SelectValue placeholder="New conversation" />
+              </SelectTrigger>
+              <SelectContent>
+                {threads.map((thread) => (
+                  <SelectItem key={thread.id} value={thread.id} className="text-xs">
+                    {thread.title || formatThreadDate(thread.createdAt)}
+                    <span className="text-muted-foreground ml-2">
+                      ({thread.messageCount})
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={createNewThread}
+              title="New conversation"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Messages */}
