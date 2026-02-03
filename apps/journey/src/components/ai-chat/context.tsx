@@ -136,6 +136,7 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
         messages: [...prev.messages, userMessage],
       }));
 
+      const model = localStorage.getItem('journey-ai-model') || 'gpt-5.2';
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,6 +144,7 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
           threadId: state.threadId,
           message,
           path: state.path,
+          model,
         }),
       });
 

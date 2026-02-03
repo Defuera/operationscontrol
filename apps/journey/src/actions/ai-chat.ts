@@ -47,7 +47,12 @@ export async function createMessage(
   threadId: string,
   role: AIMessageRole,
   content: string,
-  toolCalls?: unknown[]
+  options?: {
+    toolCalls?: unknown[];
+    model?: string;
+    promptTokens?: number;
+    completionTokens?: number;
+  }
 ): Promise<AIMessage> {
   const now = new Date().toISOString();
   const message = await db.insert(aiMessages).values({
@@ -55,7 +60,10 @@ export async function createMessage(
     threadId,
     role,
     content,
-    toolCalls: toolCalls ? JSON.stringify(toolCalls) : null,
+    toolCalls: options?.toolCalls ? JSON.stringify(options.toolCalls) : null,
+    model: options?.model || null,
+    promptTokens: options?.promptTokens || null,
+    completionTokens: options?.completionTokens || null,
     createdAt: now,
   }).returning();
 
@@ -369,4 +377,30 @@ export async function getThreadById(
     thread: thread as AIThread,
     messages: messages as AIMessage[],
   };
+}
+
+export interface TokenUsageByModel {
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export async function getTokenUsageStats(): Promise<TokenUsageByModel[]> {
+  const stats = await db
+    .select({
+      model: aiMessages.model,
+      promptTokens: sql<number>`COALESCE(SUM(${aiMessages.promptTokens}), 0)`.as('prompt_tokens'),
+      completionTokens: sql<number>`COALESCE(SUM(${aiMessages.completionTokens}), 0)`.as('completion_tokens'),
+    })
+    .from(aiMessages)
+    .where(sql`${aiMessages.model} IS NOT NULL`)
+    .groupBy(aiMessages.model);
+
+  return stats.map(s => ({
+    model: s.model!,
+    promptTokens: Number(s.promptTokens),
+    completionTokens: Number(s.completionTokens),
+    totalTokens: Number(s.promptTokens) + Number(s.completionTokens),
+  }));
 }

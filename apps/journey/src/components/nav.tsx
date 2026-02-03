@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +33,15 @@ export function Nav() {
           </Button>
         </Link>
       ))}
+      <Link href="/settings">
+        <Button
+          variant={isActive('/settings') ? 'default' : 'ghost'}
+          size="icon"
+          className="h-8 w-8"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+      </Link>
     </nav>
   );
 }

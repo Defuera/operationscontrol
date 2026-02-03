@@ -87,6 +87,9 @@ export const aiMessages = sqliteTable('ai_messages', {
   }).notNull(),
   content: text('content').notNull(),
   toolCalls: text('tool_calls'), // JSON string of tool calls
+  model: text('model'), // AI model used (for assistant messages)
+  promptTokens: integer('prompt_tokens'), // Tokens in the prompt
+  completionTokens: integer('completion_tokens'), // Tokens in the completion
   createdAt: text('created_at').notNull(),
 });
 

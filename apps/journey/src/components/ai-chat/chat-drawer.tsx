@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { useAIChat } from './context';
@@ -13,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MessageCircle, X, Plus } from 'lucide-react';
+import { MessageCircle, X, Plus, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function formatThreadDate(dateString: string): string {
@@ -28,6 +29,7 @@ function formatThreadDate(dateString: string): string {
 }
 
 export function AIChatDrawer() {
+  const [isWide, setIsWide] = useState(false);
   const router = useRouter();
   const {
     isOpen,
@@ -67,7 +69,8 @@ export function AIChatDrawer() {
       {/* Drawer panel */}
       <div
         className={cn(
-          'fixed inset-y-0 right-0 w-96 bg-white shadow-xl z-50 flex flex-col transition-transform duration-300 ease-in-out',
+          'fixed inset-y-0 right-0 bg-white shadow-xl z-50 flex flex-col transition-all duration-300 ease-in-out',
+          isWide ? 'w-full md:w-1/2' : 'w-96',
           isOpen ? 'translate-x-0' : 'translate-x-full'
         )}
       >
@@ -82,9 +85,19 @@ export function AIChatDrawer() {
                 </p>
               )}
             </div>
-            <Button variant="ghost" size="icon" onClick={closeChat}>
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsWide(!isWide)}
+                title={isWide ? 'Narrow view' : 'Wide view'}
+              >
+                {isWide ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={closeChat}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Thread switcher */}

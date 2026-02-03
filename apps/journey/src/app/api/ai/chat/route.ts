@@ -29,10 +29,14 @@ IMPORTANT RULES:
 
 Current context will be provided about the page the user is viewing.`;
 
+const ALLOWED_MODELS = ['gpt-5.2', 'gpt-5.2-pro', 'gpt-5-mini', 'gpt-5-nano'];
+const DEFAULT_MODEL = 'gpt-5.2';
+
 interface ChatRequest {
   threadId?: string;
   message: string;
   path?: string;
+  model?: string;
 }
 
 interface ProposedAction {
@@ -53,7 +57,8 @@ interface PendingActionData {
 
 export async function POST(request: Request) {
   try {
-    const { threadId, message, path } = await request.json() as ChatRequest;
+    const { threadId, message, path, model: requestedModel } = await request.json() as ChatRequest;
+    const model = requestedModel && ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_MODEL;
 
     // Get or create thread
     const thread = threadId
@@ -92,7 +97,7 @@ export async function POST(request: Request) {
 
     // Call OpenAI with tools
     let response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model,
       messages,
       tools: allTools,
       tool_choice: 'auto',
@@ -101,6 +106,10 @@ export async function POST(request: Request) {
     const pendingActionData: PendingActionData[] = [];
     let assistantMessage = response.choices[0].message;
     const toolResults: { id: string; result: string }[] = [];
+
+    // Track total token usage across all API calls
+    let totalPromptTokens = response.usage?.prompt_tokens || 0;
+    let totalCompletionTokens = response.usage?.completion_tokens || 0;
 
     // Process tool calls
     while (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
@@ -156,11 +165,15 @@ export async function POST(request: Request) {
 
       // Get next response
       response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model,
         messages,
         tools: allTools,
         tool_choice: 'auto',
       });
+
+      // Accumulate token usage
+      totalPromptTokens += response.usage?.prompt_tokens || 0;
+      totalCompletionTokens += response.usage?.completion_tokens || 0;
 
       assistantMessage = response.choices[0].message;
     }
@@ -172,7 +185,12 @@ export async function POST(request: Request) {
       thread.id,
       'assistant',
       responseContent,
-      pendingActionData.length > 0 ? pendingActionData : undefined
+      {
+        toolCalls: pendingActionData.length > 0 ? pendingActionData : undefined,
+        model,
+        promptTokens: totalPromptTokens,
+        completionTokens: totalCompletionTokens,
+      }
     );
 
     // Now create actions with the saved message ID

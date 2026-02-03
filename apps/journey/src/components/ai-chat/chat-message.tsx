@@ -92,29 +92,21 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction }: ChatMe
           <Card
             key={action.id}
             className={cn(
-              'max-w-[90%]',
+              'max-w-[90%] p-0',
               action.status === 'pending' && 'bg-amber-50 border-amber-200',
               action.status === 'confirmed' && 'bg-green-50 border-green-200',
-              action.status === 'rejected' && 'bg-red-50 border-red-200',
-              isCompleted && !isExpanded && 'p-0'
+              action.status === 'rejected' && 'bg-red-50 border-red-200'
             )}
           >
-            {/* Header - clickable for completed actions */}
+            {/* Header - always clickable to toggle details */}
             <div
-              className={cn(
-                'flex items-center gap-2',
-                isCompleted && !isExpanded
-                  ? 'px-2 py-1 cursor-pointer hover:bg-black/5 rounded-lg'
-                  : 'p-3',
-                isCompleted && isExpanded && 'cursor-pointer hover:bg-black/5 rounded-lg'
-              )}
-              onClick={isCompleted ? () => toggleExpanded(action.id) : undefined}
+              className="flex items-center gap-2 cursor-pointer hover:bg-black/5 rounded-lg px-2 py-1"
+              onClick={() => toggleExpanded(action.id)}
             >
-              {isCompleted && (
-                isExpanded
-                  ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                  : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              )}
+              {isExpanded
+                ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              }
               {action.status === 'confirmed' && <Check className="h-4 w-4 text-green-600 shrink-0" />}
               {action.status === 'rejected' && <X className="h-4 w-4 text-red-600 shrink-0" />}
               <p className="text-sm font-medium">
@@ -122,37 +114,38 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction }: ChatMe
               </p>
             </div>
 
-            {/* Content - always shown for pending, collapsible for completed */}
-            {(action.status === 'pending' || isExpanded) && (
-              <div className="px-3 pb-3">
-                <pre className="text-xs text-muted-foreground mb-3 overflow-x-auto whitespace-pre-wrap">
+            {/* Collapsible details */}
+            {isExpanded && (
+              <div className="px-2 pb-2">
+                <pre className="text-xs text-muted-foreground overflow-x-auto whitespace-pre-wrap">
                   {JSON.stringify(payload, null, 2)}
                 </pre>
+              </div>
+            )}
 
-                {action.status === 'pending' && (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-green-600 hover:text-green-700 hover:bg-green-100 border-green-300"
-                      onClick={() => handleConfirm(action.id)}
-                      disabled={loadingActionId === action.id}
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      Confirm
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-100 border-red-300"
-                      onClick={() => handleReject(action.id)}
-                      disabled={loadingActionId === action.id}
-                    >
-                      <X className="h-4 w-4 mr-1" />
-                      Reject
-                    </Button>
-                  </div>
-                )}
+            {/* Action buttons - always visible for pending */}
+            {action.status === 'pending' && (
+              <div className="flex gap-2 px-2 pb-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-green-600 hover:text-green-700 hover:bg-green-100 border-green-300"
+                  onClick={() => handleConfirm(action.id)}
+                  disabled={loadingActionId === action.id}
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Confirm
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-100 border-red-300"
+                  onClick={() => handleReject(action.id)}
+                  disabled={loadingActionId === action.id}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Reject
+                </Button>
               </div>
             )}
           </Card>
