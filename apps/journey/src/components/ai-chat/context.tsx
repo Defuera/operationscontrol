@@ -58,7 +58,7 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  // Load threads list and most recent thread when path changes
+  // Load threads list and last viewed thread when path changes
   useEffect(() => {
     const loadThreads = async () => {
       if (!state.path) return;
@@ -72,8 +72,16 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
         if (loadingPathRef.current !== state.path) return;
 
         if (threads.length > 0) {
-          // Load the most recent thread's messages
-          const result = await getThreadById(threads[0].id);
+          // Check for last viewed thread in localStorage
+          const lastViewedKey = `ai-chat-last-thread:${state.path}`;
+          const lastViewedThreadId = localStorage.getItem(lastViewedKey);
+
+          // Use last viewed thread if it exists, otherwise use most recent
+          const threadToLoad = lastViewedThreadId && threads.some(t => t.id === lastViewedThreadId)
+            ? lastViewedThreadId
+            : threads[0].id;
+
+          const result = await getThreadById(threadToLoad);
           if (result && loadingPathRef.current === state.path) {
             setState(prev => ({
               ...prev,
@@ -157,6 +165,8 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
       // If this was a new thread, refresh the threads list
       const isNewThread = !state.threadId;
       if (isNewThread && state.path) {
+        // Save as last viewed thread for this path
+        localStorage.setItem(`ai-chat-last-thread:${state.path}`, data.threadId);
         const threads = await getThreadsByPath(state.path);
         setState(prev => ({
           ...prev,
@@ -207,6 +217,10 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
     try {
       const result = await getThreadById(threadId);
       if (result) {
+        // Save as last viewed thread for this path
+        if (state.path) {
+          localStorage.setItem(`ai-chat-last-thread:${state.path}`, threadId);
+        }
         setState(prev => ({
           ...prev,
           threadId: result.thread.id,
@@ -216,13 +230,15 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Failed to switch thread:', error);
     }
-  }, []);
+  }, [state.path]);
 
   const createNewThread = useCallback(async () => {
     if (!state.path) return;
 
     try {
       const thread = await createThreadServer(state.path);
+      // Save as last viewed thread for this path
+      localStorage.setItem(`ai-chat-last-thread:${state.path}`, thread.id);
       // Add to threads list and switch to it
       setState(prev => ({
         ...prev,
