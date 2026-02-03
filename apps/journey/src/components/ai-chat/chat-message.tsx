@@ -72,7 +72,7 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction }: ChatMe
             'max-w-[80%] rounded-lg px-3 py-2 text-sm',
             'prose prose-sm prose-neutral dark:prose-invert max-w-none',
             'prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0',
-            'prose-pre:my-1 prose-code:text-xs prose-pre:bg-black/10 prose-pre:p-2',
+            'prose-pre:my-1 prose-code:text-xs prose-pre:bg-neutral-800 prose-pre:text-neutral-100 prose-pre:p-2',
             message.role === 'user'
               ? 'bg-primary text-primary-foreground prose-invert'
               : 'bg-muted'

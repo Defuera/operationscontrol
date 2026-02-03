@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MessageCircle, X, Plus, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { MessageCircle, X, Plus, PanelLeftClose, PanelLeft, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function formatThreadDate(dateString: string): string {
@@ -45,6 +45,7 @@ export function AIChatDrawer() {
     rejectAction,
     switchThread,
     createNewThread,
+    archiveCurrentThread,
   } = useAIChat();
 
   const handleConfirm = async (actionId: string) => {
@@ -129,6 +130,17 @@ export function AIChatDrawer() {
             >
               <Plus className="h-4 w-4" />
             </Button>
+            {threadId && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={archiveCurrentThread}
+                title="Archive conversation"
+              >
+                <Archive className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 

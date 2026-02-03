@@ -74,6 +74,7 @@ export const aiThreads = sqliteTable('ai_threads', {
   id: text('id').primaryKey(),
   anchorPath: text('anchor_path'),
   title: text('title'),
+  archivedAt: text('archived_at'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });

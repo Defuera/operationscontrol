@@ -317,11 +317,11 @@ export interface ThreadSummary {
 }
 
 export async function getThreadsByPath(anchorPath: string): Promise<ThreadSummary[]> {
-  // Get threads first
+  // Get non-archived threads
   const threadRows = await db
     .select()
     .from(aiThreads)
-    .where(eq(aiThreads.anchorPath, anchorPath))
+    .where(sql`${aiThreads.anchorPath} = ${anchorPath} AND ${aiThreads.archivedAt} IS NULL`)
     .orderBy(desc(aiThreads.updatedAt));
 
   // Get message counts for these threads
@@ -403,4 +403,11 @@ export async function getTokenUsageStats(): Promise<TokenUsageByModel[]> {
     completionTokens: Number(s.completionTokens),
     totalTokens: Number(s.promptTokens) + Number(s.completionTokens),
   }));
+}
+
+export async function archiveThread(threadId: string): Promise<void> {
+  const now = new Date().toISOString();
+  await db.update(aiThreads)
+    .set({ archivedAt: now })
+    .where(eq(aiThreads.id, threadId));
 }
