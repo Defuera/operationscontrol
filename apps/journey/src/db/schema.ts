@@ -72,10 +72,7 @@ export const goals = sqliteTable('goals', {
 // AI Threads
 export const aiThreads = sqliteTable('ai_threads', {
   id: text('id').primaryKey(),
-  anchorEntityType: text('anchor_entity_type', {
-    enum: ['project', 'task', 'goal', 'journal']
-  }),
-  anchorEntityId: text('anchor_entity_id'),
+  anchorPath: text('anchor_path'),
   title: text('title'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),

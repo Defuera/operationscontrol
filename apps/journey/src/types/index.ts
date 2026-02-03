@@ -60,7 +60,6 @@ export interface Goal {
 }
 
 // AI Chat Types
-export type AnchorEntityType = 'project' | 'task' | 'goal' | 'journal';
 export type AIMessageRole = 'user' | 'assistant';
 export type AIActionType = 'create' | 'update' | 'delete';
 export type AIEntityType = 'task' | 'project' | 'goal' | 'journal';
@@ -68,8 +67,7 @@ export type AIActionStatus = 'pending' | 'confirmed' | 'rejected' | 'reverted';
 
 export interface AIThread {
   id: string;
-  anchorEntityType: AnchorEntityType | null;
-  anchorEntityId: string | null;
+  anchorPath: string | null;
   title: string | null;
   createdAt: string;
   updatedAt: string;
@@ -100,6 +98,5 @@ export interface AIAction {
 }
 
 export interface AIContext {
-  type: AnchorEntityType;
-  entityId: string;
+  path: string;
 }

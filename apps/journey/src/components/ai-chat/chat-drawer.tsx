@@ -14,7 +14,7 @@ export function AIChatDrawer() {
     isOpen,
     messages,
     isLoading,
-    context,
+    path,
     toggleChat,
     closeChat,
     sendMessage,
@@ -52,9 +52,9 @@ export function AIChatDrawer() {
         <div className="flex items-center justify-between p-4 border-b">
           <div>
             <h2 className="font-semibold">AI Assistant</h2>
-            {context && (
+            {path && (
               <p className="text-xs text-muted-foreground">
-                {context.type}: {context.entityId.slice(0, 8)}...
+                {path}
               </p>
             )}
           </div>

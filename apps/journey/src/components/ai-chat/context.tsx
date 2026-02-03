@@ -1,19 +1,19 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
-import type { AIContext, AIMessage } from '@/types';
-import { confirmAction as confirmActionServer, rejectAction as rejectActionServer, getThreadByContext } from '@/actions/ai-chat';
+import type { AIMessage } from '@/types';
+import { confirmAction as confirmActionServer, rejectAction as rejectActionServer, getThreadByPath } from '@/actions/ai-chat';
 
 interface AIChatState {
   isOpen: boolean;
   threadId: string | null;
   messages: AIMessage[];
   isLoading: boolean;
-  context: AIContext | null;
+  path: string | null;
 }
 
 interface AIChatContextValue extends AIChatState {
-  setContext: (context: AIContext | null) => void;
+  setContext: (path: string | null) => void;
   openChat: () => void;
   closeChat: () => void;
   toggleChat: () => void;
@@ -31,34 +31,33 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
     threadId: null,
     messages: [],
     isLoading: false,
-    context: null,
+    path: null,
   });
 
-  const loadingContextRef = useRef<string | null>(null);
+  const loadingPathRef = useRef<string | null>(null);
 
-  const setContext = useCallback((context: AIContext | null) => {
+  const setContext = useCallback((path: string | null) => {
     setState(prev => ({
       ...prev,
-      context,
-      // Clear thread when context changes - will be loaded by useEffect
-      threadId: prev.context?.entityId !== context?.entityId ? null : prev.threadId,
-      messages: prev.context?.entityId !== context?.entityId ? [] : prev.messages,
+      path,
+      // Clear thread when path changes - will be loaded by useEffect
+      threadId: prev.path !== path ? null : prev.threadId,
+      messages: prev.path !== path ? [] : prev.messages,
     }));
   }, []);
 
-  // Load existing thread when context changes
+  // Load existing thread when path changes
   useEffect(() => {
     const loadExistingThread = async () => {
-      if (!state.context?.type || !state.context?.entityId) return;
+      if (!state.path) return;
       if (state.threadId) return; // Already have a thread loaded
 
-      const contextKey = `${state.context.type}:${state.context.entityId}`;
-      if (loadingContextRef.current === contextKey) return; // Already loading this context
-      loadingContextRef.current = contextKey;
+      if (loadingPathRef.current === state.path) return; // Already loading this path
+      loadingPathRef.current = state.path;
 
       try {
-        const result = await getThreadByContext(state.context.type, state.context.entityId);
-        if (result && loadingContextRef.current === contextKey) {
+        const result = await getThreadByPath(state.path);
+        if (result && loadingPathRef.current === state.path) {
           setState(prev => ({
             ...prev,
             threadId: result.thread.id,
@@ -68,14 +67,14 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Failed to load thread:', error);
       } finally {
-        if (loadingContextRef.current === contextKey) {
-          loadingContextRef.current = null;
+        if (loadingPathRef.current === state.path) {
+          loadingPathRef.current = null;
         }
       }
     };
 
     loadExistingThread();
-  }, [state.context?.type, state.context?.entityId, state.threadId]);
+  }, [state.path, state.threadId]);
 
   const openChat = useCallback(() => {
     setState(prev => ({ ...prev, isOpen: true }));
@@ -114,7 +113,7 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           threadId: state.threadId,
           message,
-          context: state.context,
+          path: state.path,
         }),
       });
 
@@ -144,7 +143,7 @@ export function AIContextProvider({ children }: { children: ReactNode }) {
       console.error('Send message error:', error);
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [state.threadId, state.context]);
+  }, [state.threadId, state.path]);
 
   const confirmAction = useCallback(async (actionId: string) => {
     try {
@@ -194,7 +193,7 @@ export function useAIContext() {
   if (!context) {
     throw new Error('useAIContext must be used within AIContextProvider');
   }
-  return { context: context.context, setContext: context.setContext };
+  return { path: context.path, setContext: context.setContext };
 }
 
 export function useAIChat() {

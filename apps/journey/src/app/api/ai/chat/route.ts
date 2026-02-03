@@ -9,7 +9,7 @@ import {
   createMessage,
   createAction,
 } from '@/actions/ai-chat';
-import type { AnchorEntityType, AIEntityType, AIActionType } from '@/types';
+import type { AIEntityType, AIActionType } from '@/types';
 
 const openai = new OpenAI();
 
@@ -32,10 +32,7 @@ Current context will be provided about the page the user is viewing.`;
 interface ChatRequest {
   threadId?: string;
   message: string;
-  context?: {
-    type: AnchorEntityType;
-    entityId: string;
-  };
+  path?: string;
 }
 
 interface ProposedAction {
@@ -56,12 +53,12 @@ interface PendingActionData {
 
 export async function POST(request: Request) {
   try {
-    const { threadId, message, context } = await request.json() as ChatRequest;
+    const { threadId, message, path } = await request.json() as ChatRequest;
 
     // Get or create thread
     const thread = threadId
       ? { id: threadId }
-      : await getOrCreateThread(context?.type, context?.entityId);
+      : await getOrCreateThread(path);
 
     // Load thread history
     const history = await getThreadMessages(thread.id);
@@ -75,10 +72,10 @@ export async function POST(request: Request) {
     ];
 
     // Add context if available
-    if (context) {
+    if (path) {
       messages.push({
         role: 'system',
-        content: `User is viewing: ${context.type} with ID ${context.entityId}`,
+        content: `User is viewing: ${path}`,
       });
     }
 

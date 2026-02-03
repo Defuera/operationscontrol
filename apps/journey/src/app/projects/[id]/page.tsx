@@ -39,7 +39,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   useEffect(() => {
     loadData();
-    setContext({ type: 'project', entityId: id });
+    setContext(`/projects/${id}`);
     return () => setContext(null);
   }, [id, setContext]);
 

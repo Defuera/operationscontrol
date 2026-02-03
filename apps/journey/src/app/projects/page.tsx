@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ProjectCard, ProjectDialog } from '@/components/projects';
+import { useAIContext } from '@/components/ai-chat';
 import { getProjects, createProject } from '@/actions/projects';
 import { getTasks } from '@/actions/tasks';
 import type { Project, ProjectType, Task } from '@/types';
@@ -15,6 +16,7 @@ const PROJECT_TYPES: { label: string; value: ProjectType | 'all' }[] = [
 ];
 
 export default function ProjectsPage() {
+  const { setContext } = useAIContext();
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -22,7 +24,9 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+    setContext('/projects');
+    return () => setContext(null);
+  }, [setContext]);
 
   const loadData = async () => {
     const [projectsData, tasksData] = await Promise.all([

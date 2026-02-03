@@ -27,7 +27,7 @@ export function ActionConfirmation({ actions, onConfirm, onReject }: ActionConfi
         <Card key={action.id} className="p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{action.description}</p>
+              <p className="text-sm font-medium">{action.description}</p>
               <pre className="text-xs text-muted-foreground mt-1 overflow-x-auto">
                 {JSON.stringify(action.args, null, 2)}
               </pre>

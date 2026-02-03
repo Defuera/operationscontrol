@@ -137,8 +137,8 @@ interface PendingActionData {
 
 async function handleAIChat(chatId: number, text: string) {
   try {
-    // Use chatId as anchor to maintain conversation
-    const thread = await getOrCreateThread('journal', `telegram-${chatId}`);
+    // Use chatId as anchor to maintain conversation (telegram chats anchor to /journal)
+    const thread = await getOrCreateThread(`/journal/telegram-${chatId}`);
     const history = await getThreadMessages(thread.id);
 
     await createMessage(thread.id, 'user', text);

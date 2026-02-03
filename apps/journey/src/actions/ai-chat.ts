@@ -7,31 +7,27 @@ import type {
   AIThread,
   AIMessage,
   AIAction,
-  AnchorEntityType,
   AIMessageRole,
   AIActionType,
   AIEntityType,
 } from '@/types';
 
 export async function getOrCreateThread(
-  anchorType?: AnchorEntityType,
-  anchorId?: string
+  anchorPath?: string
 ): Promise<AIThread> {
-  // Try to find existing thread for this anchor
-  if (anchorType && anchorId) {
+  // Try to find existing thread for this path
+  if (anchorPath) {
     const existing = await db.select().from(aiThreads)
-      .where(eq(aiThreads.anchorEntityId, anchorId));
+      .where(eq(aiThreads.anchorPath, anchorPath));
 
-    const match = existing.find(t => t.anchorEntityType === anchorType);
-    if (match) return match as AIThread;
+    if (existing.length > 0) return existing[0] as AIThread;
   }
 
   // Create new thread
   const now = new Date().toISOString();
   const thread = await db.insert(aiThreads).values({
     id: crypto.randomUUID(),
-    anchorEntityType: anchorType || null,
-    anchorEntityId: anchorId || null,
+    anchorPath: anchorPath || null,
     title: null,
     createdAt: now,
     updatedAt: now,
@@ -285,15 +281,14 @@ export async function getActionsByMessage(messageId: string): Promise<AIAction[]
   return actions as AIAction[];
 }
 
-export async function getThreadByContext(
-  anchorType: AnchorEntityType,
-  anchorId: string
+export async function getThreadByPath(
+  anchorPath: string
 ): Promise<{ thread: AIThread; messages: AIMessage[] } | null> {
   const existing = await db.select().from(aiThreads)
-    .where(eq(aiThreads.anchorEntityId, anchorId));
+    .where(eq(aiThreads.anchorPath, anchorPath));
 
-  const thread = existing.find(t => t.anchorEntityType === anchorType);
-  if (!thread) return null;
+  if (existing.length === 0) return null;
+  const thread = existing[0];
 
   const messages = await db.select().from(aiMessages)
     .where(eq(aiMessages.threadId, thread.id))
