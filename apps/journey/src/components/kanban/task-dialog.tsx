@@ -29,9 +29,10 @@ interface TaskDialogProps {
   showDomain?: boolean;
   showBoardScope?: boolean;
   defaultBoardScope?: BoardScope;
+  projectName?: string;
 }
 
-export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain = true, showBoardScope = false, defaultBoardScope = 'day' }: TaskDialogProps) {
+export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain = true, showBoardScope = false, defaultBoardScope = 'day', projectName }: TaskDialogProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [domain, setDomain] = useState<TaskDomain>('work');
@@ -71,6 +72,11 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain =
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{task ? 'Edit Task' : 'New Task'}</DialogTitle>
+          {projectName && (
+            <p className="text-sm text-muted-foreground">
+              Project: {projectName}
+            </p>
+          )}
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

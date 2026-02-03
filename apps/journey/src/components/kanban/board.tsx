@@ -18,17 +18,19 @@ import { WeekView } from './week-view';
 import { QuarterView } from './quarter-view';
 import { Button } from '@/components/ui/button';
 import { createTask, updateTask, updateTaskStatus, deleteTask } from '@/actions/tasks';
-import type { Task, TaskStatus, TaskDomain, BoardScope } from '@/types';
+import type { Task, TaskStatus, TaskDomain, BoardScope, Project } from '@/types';
 
 const statuses: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'done'];
 const domains: (TaskDomain | 'all')[] = ['all', 'work', 'side', 'chores', 'life'];
 
 interface BoardProps {
   initialTasks: Task[];
+  projects?: Project[];
 }
 
-export function Board({ initialTasks }: BoardProps) {
+export function Board({ initialTasks, projects = [] }: BoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const projectMap = new Map(projects.map(p => [p.id, p]));
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -198,6 +200,7 @@ export function Board({ initialTasks }: BoardProps) {
         onDelete={editingTask ? handleDelete : undefined}
         showBoardScope={true}
         defaultBoardScope={currentScope ?? undefined}
+        projectName={editingTask?.projectId ? projectMap.get(editingTask.projectId)?.name : undefined}
       />
     </div>
   );
