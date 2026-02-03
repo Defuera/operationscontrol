@@ -17,6 +17,16 @@ import type { AIEntityType, AIActionType } from '@/types';
 
 const openai = new OpenAI();
 
+async function getGoalsContext(): Promise<string | null> {
+  const goals = await getGoals();
+  const activeGoals = goals.filter(g => g.status === 'active');
+
+  if (activeGoals.length === 0) return null;
+
+  const goalsList = activeGoals.map(g => `- ${g.title} (${g.horizon})`).join('\n');
+  return `User's active goals:\n${goalsList}`;
+}
+
 async function getContextFromPath(path: string): Promise<string | null> {
   // Parse path like /projects/uuid or /goals/uuid
   const projectMatch = path.match(/^\/projects\/([a-f0-9-]+)$/i);
@@ -97,7 +107,7 @@ export async function POST(request: Request) {
       { role: 'system', content: prompt },
     ];
 
-    // Add context if available
+    // Add page-specific context
     if (path) {
       const context = await getContextFromPath(path);
       if (context) {
@@ -106,6 +116,15 @@ export async function POST(request: Request) {
           content: context,
         });
       }
+    }
+
+    // Add goals as background context
+    const goalsContext = await getGoalsContext();
+    if (goalsContext) {
+      messages.push({
+        role: 'system',
+        content: goalsContext,
+      });
     }
 
     // Add history
