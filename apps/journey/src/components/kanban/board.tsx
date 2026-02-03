@@ -35,6 +35,7 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [domainFilter, setDomainFilter] = useState<TaskDomain | 'all'>('all');
+  const [showProjectTasks, setShowProjectTasks] = useState(true);
   const [view, setView] = useState<ViewType>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -49,7 +50,8 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
 
   const filteredTasks = tasks
     .filter(t => view === 'all' || t.boardScope === currentScope)
-    .filter(t => domainFilter === 'all' || t.domain === domainFilter);
+    .filter(t => domainFilter === 'all' || t.domain === domainFilter)
+    .filter(t => showProjectTasks || !t.projectId);
 
   const tasksByStatus = statuses.reduce((acc, status) => {
     acc[status] = filteredTasks.filter(t => t.status === status);
@@ -150,6 +152,13 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
               </Button>
             ))}
           </div>
+          <Button
+            variant={showProjectTasks ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowProjectTasks(!showProjectTasks)}
+          >
+            Projects {showProjectTasks ? 'On' : 'Off'}
+          </Button>
           <Button onClick={handleNewTask}>+ New Task</Button>
         </div>
       </div>
