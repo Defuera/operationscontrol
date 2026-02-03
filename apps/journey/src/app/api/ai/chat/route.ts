@@ -3,31 +3,50 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { allTools, isWriteTool } from '@/lib/ai/tools';
 import { executeReadTool, describeWriteAction } from '@/lib/ai/tool-executor';
+import { DEFAULT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import {
   getOrCreateThread,
   getThreadMessages,
   createMessage,
   createAction,
 } from '@/actions/ai-chat';
+import { getProjectWithTasks } from '@/actions/projects';
+import { getGoals } from '@/actions/goals';
+import { getTasks } from '@/actions/tasks';
 import type { AIEntityType, AIActionType } from '@/types';
 
 const openai = new OpenAI();
 
-const SYSTEM_PROMPT = `You are a helpful productivity assistant for "The Journey" app. You help users manage their tasks, projects, and goals across three life domains: Work, Side Projects, and Chores/Life.
+async function getContextFromPath(path: string): Promise<string | null> {
+  // Parse path like /projects/uuid or /goals/uuid
+  const projectMatch = path.match(/^\/projects\/([a-f0-9-]+)$/i);
+  if (projectMatch) {
+    const data = await getProjectWithTasks(projectMatch[1]);
+    if (data) {
+      const taskList = data.tasks.length > 0
+        ? `\nTasks: ${data.tasks.map(t => `${t.title} (${t.status})`).join(', ')}`
+        : '';
+      return `User is viewing project "${data.project.name}" (${data.project.type}, ${data.project.status})${data.project.description ? `\nDescription: ${data.project.description}` : ''}${taskList}`;
+    }
+  }
 
-Your capabilities:
-- Search and view tasks, projects, and goals
-- Create, update, and delete tasks
-- Create, update, and delete projects and goals
-- Create journal entries
+  const goalMatch = path.match(/^\/goals\/([a-f0-9-]+)$/i);
+  if (goalMatch) {
+    const goals = await getGoals();
+    const goal = goals.find(g => g.id === goalMatch[1]);
+    if (goal) {
+      return `User is viewing goal "${goal.title}" (${goal.horizon}, ${goal.status})${goal.description ? `\nDescription: ${goal.description}` : ''}`;
+    }
+  }
 
-IMPORTANT RULES:
-1. When user asks to modify/update/rename/change something, ALWAYS search first to find the entity ID, then use the update tool
-2. NEVER create a new entity when user asks to modify an existing one
-3. Be concise and action-oriented
-4. When proposing changes, be specific about what will change
+  // For list pages, just describe what they're viewing
+  if (path === '/') return 'User is viewing the kanban board';
+  if (path === '/projects') return 'User is viewing the projects list';
+  if (path === '/goals') return 'User is viewing the goals list';
+  if (path === '/journal') return 'User is viewing the journal';
 
-Current context will be provided about the page the user is viewing.`;
+  return null;
+}
 
 const ALLOWED_MODELS = ['gpt-5.2', 'gpt-5.2-pro', 'gpt-5-mini', 'gpt-5-nano'];
 const DEFAULT_MODEL = 'gpt-5.2';
@@ -37,6 +56,7 @@ interface ChatRequest {
   message: string;
   path?: string;
   model?: string;
+  systemPrompt?: string;
 }
 
 interface ProposedAction {
@@ -57,8 +77,9 @@ interface PendingActionData {
 
 export async function POST(request: Request) {
   try {
-    const { threadId, message, path, model: requestedModel } = await request.json() as ChatRequest;
+    const { threadId, message, path, model: requestedModel, systemPrompt } = await request.json() as ChatRequest;
     const model = requestedModel && ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_MODEL;
+    const prompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
 
     // Get or create thread
     const thread = threadId
@@ -73,15 +94,18 @@ export async function POST(request: Request) {
 
     // Build messages for OpenAI
     const messages: ChatCompletionMessageParam[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: prompt },
     ];
 
     // Add context if available
     if (path) {
-      messages.push({
-        role: 'system',
-        content: `User is viewing: ${path}`,
-      });
+      const context = await getContextFromPath(path);
+      if (context) {
+        messages.push({
+          role: 'system',
+          content: context,
+        });
+      }
     }
 
     // Add history

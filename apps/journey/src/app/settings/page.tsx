@@ -9,7 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { getTokenUsageStats, type TokenUsageByModel } from '@/actions/ai-chat';
+import { DEFAULT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 
 const AI_MODELS = [
   { id: 'gpt-5.2', name: 'GPT-5.2', description: 'Flagship reasoning & general AI model', inputPrice: 2.50, outputPrice: 10.00 },
@@ -19,6 +22,7 @@ const AI_MODELS = [
 ];
 
 const STORAGE_KEY = 'journey-ai-model';
+const PROMPT_STORAGE_KEY = 'journey-system-prompt';
 const DEFAULT_MODEL = 'gpt-5.2';
 
 function formatNumber(num: number): string {
@@ -42,14 +46,20 @@ function calculateCost(usage: TokenUsageByModel): number {
 
 export default function SettingsPage() {
   const [model, setModel] = useState(DEFAULT_MODEL);
+  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
+  const [promptSaved, setPromptSaved] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [usage, setUsage] = useState<TokenUsageByModel[]>([]);
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      setModel(saved);
+    const savedModel = localStorage.getItem(STORAGE_KEY);
+    if (savedModel) {
+      setModel(savedModel);
+    }
+    const savedPrompt = localStorage.getItem(PROMPT_STORAGE_KEY);
+    if (savedPrompt) {
+      setSystemPrompt(savedPrompt);
     }
 
     // Load usage stats
@@ -59,6 +69,22 @@ export default function SettingsPage() {
   const handleModelChange = (value: string) => {
     setModel(value);
     localStorage.setItem(STORAGE_KEY, value);
+  };
+
+  const handlePromptChange = (value: string) => {
+    setSystemPrompt(value);
+    setPromptSaved(false);
+  };
+
+  const savePrompt = () => {
+    localStorage.setItem(PROMPT_STORAGE_KEY, systemPrompt);
+    setPromptSaved(true);
+  };
+
+  const resetPrompt = () => {
+    setSystemPrompt(DEFAULT_SYSTEM_PROMPT);
+    localStorage.removeItem(PROMPT_STORAGE_KEY);
+    setPromptSaved(true);
   };
 
   if (!mounted) {
@@ -97,6 +123,32 @@ export default function SettingsPage() {
                 {selectedModel.description}
               </p>
             )}
+          </div>
+
+          <div className="space-y-2 mt-6">
+            <label htmlFor="prompt" className="text-sm font-medium">System Prompt</label>
+            <Textarea
+              id="prompt"
+              value={systemPrompt}
+              onChange={(e) => handlePromptChange(e.target.value)}
+              className="min-h-[200px] font-mono text-sm"
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={savePrompt}
+                disabled={promptSaved}
+              >
+                {promptSaved ? 'Saved' : 'Save'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={resetPrompt}
+              >
+                Reset to Default
+              </Button>
+            </div>
           </div>
         </Card>
 

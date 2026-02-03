@@ -135,6 +135,7 @@ export function useAIChatState(): AIChatContextValue {
       }));
 
       const model = localStorage.getItem('journey-ai-model') || 'gpt-5.2';
+      const systemPrompt = localStorage.getItem('journey-system-prompt') || undefined;
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,6 +144,7 @@ export function useAIChatState(): AIChatContextValue {
           message,
           path: state.path,
           model,
+          systemPrompt,
         }),
       });
 
