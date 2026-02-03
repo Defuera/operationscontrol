@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,12 +70,15 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction }: ChatMe
         <div
           className={cn(
             'max-w-[80%] rounded-lg px-3 py-2 text-sm',
+            'prose prose-sm prose-neutral dark:prose-invert max-w-none',
+            'prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0',
+            'prose-pre:my-1 prose-code:text-xs prose-pre:bg-black/10 prose-pre:p-2',
             message.role === 'user'
-              ? 'bg-primary text-primary-foreground'
+              ? 'bg-primary text-primary-foreground prose-invert'
               : 'bg-muted'
           )}
         >
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
       )}
 
@@ -91,14 +95,18 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction }: ChatMe
               'max-w-[90%]',
               action.status === 'pending' && 'bg-amber-50 border-amber-200',
               action.status === 'confirmed' && 'bg-green-50 border-green-200',
-              action.status === 'rejected' && 'bg-red-50 border-red-200'
+              action.status === 'rejected' && 'bg-red-50 border-red-200',
+              isCompleted && !isExpanded && 'p-0'
             )}
           >
             {/* Header - clickable for completed actions */}
             <div
               className={cn(
-                'p-3 flex items-center gap-2',
-                isCompleted && 'cursor-pointer hover:bg-black/5 rounded-lg'
+                'flex items-center gap-2',
+                isCompleted && !isExpanded
+                  ? 'px-2 py-1 cursor-pointer hover:bg-black/5 rounded-lg'
+                  : 'p-3',
+                isCompleted && isExpanded && 'cursor-pointer hover:bg-black/5 rounded-lg'
               )}
               onClick={isCompleted ? () => toggleExpanded(action.id) : undefined}
             >
