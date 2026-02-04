@@ -24,7 +24,7 @@ export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
-  const [activeHorizon, setActiveHorizon] = useState<string | null>(null);
+  const [activeHorizon, setActiveHorizon] = useState<string | 'all'>('all');
 
   useEffect(() => {
     loadGoals();
@@ -33,12 +33,6 @@ export default function GoalsPage() {
   const loadGoals = async () => {
     const data = await getGoals();
     setGoals(data);
-    // Set initial active horizon to first available
-    if (data.length > 0 && !activeHorizon) {
-      const horizons = [...new Set(data.filter(g => g.status === 'active').map(g => g.horizon))];
-      const sorted = sortHorizons(horizons);
-      if (sorted.length > 0) setActiveHorizon(sorted[0]);
-    }
   };
 
   // Get unique horizons that have active goals
@@ -50,9 +44,9 @@ export default function GoalsPage() {
   const allHorizons = [...new Set(goals.map(g => g.horizon))];
 
   // Filter goals by active horizon
-  const filteredGoals = activeHorizon
-    ? goals.filter(g => g.horizon === activeHorizon && g.status === 'active')
-    : goals.filter(g => g.status === 'active');
+  const filteredGoals = activeHorizon === 'all'
+    ? goals.filter(g => g.status === 'active')
+    : goals.filter(g => g.horizon === activeHorizon && g.status === 'active');
 
   const handleSave = async (data: {
     title: string;
@@ -104,6 +98,13 @@ export default function GoalsPage() {
       {/* Horizon filter tabs - only show if there are goals */}
       {activeHorizons.length > 0 && (
         <div className="flex gap-2 mb-6">
+          <Button
+            variant={activeHorizon === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveHorizon('all')}
+          >
+            All
+          </Button>
           {activeHorizons.map(horizon => (
             <Button
               key={horizon}
