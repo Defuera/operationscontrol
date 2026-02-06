@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AIContextProvider, AIChatDrawer } from "@/components/ai-chat";
 import { Nav } from "@/components/nav";
+import { createClient } from "@/lib/supabase/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,24 +20,31 @@ export const metadata: Metadata = {
   description: "Personal productivity workspace",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AIContextProvider>
-          <header className="border-b px-8 py-4 flex items-center justify-between">
-            <h1 className="text-xl font-bold">The Journey</h1>
-            <Nav />
-          </header>
-          {children}
-          <AIChatDrawer />
-        </AIContextProvider>
+        {user ? (
+          <AIContextProvider>
+            <header className="border-b px-8 py-4 flex items-center justify-between">
+              <h1 className="text-xl font-bold">The Journey</h1>
+              <Nav />
+            </header>
+            {children}
+            <AIChatDrawer />
+          </AIContextProvider>
+        ) : (
+          children
+        )}
       </body>
     </html>
   );

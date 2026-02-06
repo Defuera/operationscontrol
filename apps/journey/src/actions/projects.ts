@@ -2,8 +2,9 @@
 
 import { db } from '@/db';
 import { projects, tasks } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { requireAuth } from '@/lib/auth';
 import type { Project, ProjectType, ProjectStatus, Task } from '@/types';
 
 export interface CreateProjectInput {
@@ -14,16 +15,15 @@ export interface CreateProjectInput {
 }
 
 export async function createProject(input: CreateProjectInput): Promise<Project> {
-  const now = new Date().toISOString();
+  const user = await requireAuth();
+
   const project = await db.insert(projects).values({
-    id: crypto.randomUUID(),
+    userId: user.id,
     name: input.name,
     description: input.description || null,
     type: input.type,
     goals: input.goals || null,
     status: 'active',
-    createdAt: now,
-    updatedAt: now,
   }).returning();
 
   revalidatePath('/projects');
@@ -32,27 +32,33 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
 
 export async function updateProject(
   id: string,
-  data: Partial<Omit<Project, 'id' | 'createdAt'>>
+  data: Partial<Omit<Project, 'id' | 'createdAt' | 'userId'>>
 ): Promise<void> {
+  const user = await requireAuth();
+
   await db.update(projects)
     .set({ ...data, updatedAt: new Date().toISOString() })
-    .where(eq(projects.id, id));
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)));
 
   revalidatePath('/projects');
 }
 
 export async function deleteProject(id: string): Promise<void> {
+  const user = await requireAuth();
+
   // Unlink tasks from project first
   await db.update(tasks)
     .set({ projectId: null })
-    .where(eq(tasks.projectId, id));
+    .where(and(eq(tasks.projectId, id), eq(tasks.userId, user.id)));
 
-  await db.delete(projects).where(eq(projects.id, id));
+  await db.delete(projects).where(and(eq(projects.id, id), eq(projects.userId, user.id)));
   revalidatePath('/projects');
 }
 
 export async function getProjects(): Promise<Project[]> {
-  const result = await db.select().from(projects);
+  const user = await requireAuth();
+
+  const result = await db.select().from(projects).where(eq(projects.userId, user.id));
   return result as Project[];
 }
 
@@ -60,10 +66,14 @@ export async function getProjectWithTasks(id: string): Promise<{
   project: Project;
   tasks: Task[];
 } | null> {
-  const project = await db.select().from(projects).where(eq(projects.id, id));
+  const user = await requireAuth();
+
+  const project = await db.select().from(projects)
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)));
   if (project.length === 0) return null;
 
-  const projectTasks = await db.select().from(tasks).where(eq(tasks.projectId, id));
+  const projectTasks = await db.select().from(tasks)
+    .where(and(eq(tasks.projectId, id), eq(tasks.userId, user.id)));
   return {
     project: project[0] as Project,
     tasks: projectTasks as Task[],

@@ -13,6 +13,7 @@ import {
 import { getProjectWithTasks } from '@/actions/projects';
 import { getGoals } from '@/actions/goals';
 import { getTasks } from '@/actions/tasks';
+import { createClient } from '@/lib/supabase/server';
 import type { AIEntityType, AIActionType } from '@/types';
 
 const openai = new OpenAI();
@@ -87,6 +88,13 @@ interface PendingActionData {
 
 export async function POST(request: Request) {
   try {
+    // Auth guard
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { threadId, message, path, model: requestedModel, systemPrompt } = await request.json() as ChatRequest;
     const model = requestedModel && ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_MODEL;
     const prompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
@@ -186,8 +194,8 @@ export async function POST(request: Request) {
             }),
           });
         } else {
-          // Execute read tool immediately
-          const result = await executeReadTool(toolName, args);
+          // Execute read tool immediately with userId for data isolation
+          const result = await executeReadTool(toolName, args, user.id);
           toolResults.push({
             id: toolCall.id,
             result: JSON.stringify(result),

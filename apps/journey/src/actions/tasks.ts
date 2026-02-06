@@ -2,8 +2,9 @@
 
 import { db } from '@/db';
 import { tasks } from '@/db/schema';
-import { eq, isNotNull } from 'drizzle-orm';
+import { eq, and, isNotNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { requireAuth } from '@/lib/auth';
 import type { Task, TaskStatus, TaskDomain, BoardScope } from '@/types';
 
 export interface CreateTaskInput {
@@ -17,9 +18,10 @@ export interface CreateTaskInput {
 }
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
-  const now = new Date().toISOString();
+  const user = await requireAuth();
+
   const task = await db.insert(tasks).values({
-    id: crypto.randomUUID(),
+    userId: user.id,
     title: input.title,
     description: input.description || null,
     domain: input.domain || null,
@@ -28,8 +30,6 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
     boardScope: input.boardScope || null,
     projectId: input.projectId || null,
     status: 'backlog',
-    createdAt: now,
-    updatedAt: now,
   }).returning();
 
   revalidatePath('/');
@@ -38,52 +38,66 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
 
 export async function updateTask(
   id: string,
-  data: Partial<Omit<Task, 'id' | 'createdAt'>>
+  data: Partial<Omit<Task, 'id' | 'createdAt' | 'userId'>>
 ): Promise<void> {
+  const user = await requireAuth();
+
   await db.update(tasks)
     .set({ ...data, updatedAt: new Date().toISOString() })
-    .where(eq(tasks.id, id));
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
 
   revalidatePath('/');
 }
 
 export async function updateTaskStatus(id: string, status: TaskStatus): Promise<void> {
+  const user = await requireAuth();
+
   await db.update(tasks)
     .set({ status, updatedAt: new Date().toISOString() })
-    .where(eq(tasks.id, id));
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
 
   revalidatePath('/');
 }
 
 export async function addTaskToBoard(id: string, boardScope: BoardScope): Promise<void> {
+  const user = await requireAuth();
+
   await db.update(tasks)
     .set({ boardScope, updatedAt: new Date().toISOString() })
-    .where(eq(tasks.id, id));
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
 
   revalidatePath('/');
 }
 
 export async function removeTaskFromBoard(id: string): Promise<void> {
+  const user = await requireAuth();
+
   await db.update(tasks)
     .set({ boardScope: null, updatedAt: new Date().toISOString() })
-    .where(eq(tasks.id, id));
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
 
   revalidatePath('/');
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  await db.delete(tasks).where(eq(tasks.id, id));
+  const user = await requireAuth();
+
+  await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
   revalidatePath('/');
 }
 
 export async function getTasks(): Promise<Task[]> {
-  const result = await db.select().from(tasks);
+  const user = await requireAuth();
+
+  const result = await db.select().from(tasks).where(eq(tasks.userId, user.id));
   return result as Task[];
 }
 
 export async function getBoardTasks(): Promise<Task[]> {
+  const user = await requireAuth();
+
   const result = await db.select()
     .from(tasks)
-    .where(isNotNull(tasks.boardScope));
+    .where(and(isNotNull(tasks.boardScope), eq(tasks.userId, user.id)));
   return result as Task[];
 }

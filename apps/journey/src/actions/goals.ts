@@ -2,8 +2,9 @@
 
 import { db } from '@/db';
 import { goals } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { requireAuth } from '@/lib/auth';
 import type { Goal, GoalStatus } from '@/types';
 
 export interface CreateGoalInput {
@@ -13,15 +14,14 @@ export interface CreateGoalInput {
 }
 
 export async function createGoal(input: CreateGoalInput): Promise<Goal> {
-  const now = new Date().toISOString();
+  const user = await requireAuth();
+
   const goal = await db.insert(goals).values({
-    id: crypto.randomUUID(),
+    userId: user.id,
     title: input.title,
     description: input.description || null,
     horizon: input.horizon,
     status: 'active',
-    createdAt: now,
-    updatedAt: now,
   }).returning();
 
   revalidatePath('/goals');
@@ -30,21 +30,27 @@ export async function createGoal(input: CreateGoalInput): Promise<Goal> {
 
 export async function updateGoal(
   id: string,
-  data: Partial<Omit<Goal, 'id' | 'createdAt'>>
+  data: Partial<Omit<Goal, 'id' | 'createdAt' | 'userId'>>
 ): Promise<void> {
+  const user = await requireAuth();
+
   await db.update(goals)
     .set({ ...data, updatedAt: new Date().toISOString() })
-    .where(eq(goals.id, id));
+    .where(and(eq(goals.id, id), eq(goals.userId, user.id)));
 
   revalidatePath('/goals');
 }
 
 export async function deleteGoal(id: string): Promise<void> {
-  await db.delete(goals).where(eq(goals.id, id));
+  const user = await requireAuth();
+
+  await db.delete(goals).where(and(eq(goals.id, id), eq(goals.userId, user.id)));
   revalidatePath('/goals');
 }
 
 export async function getGoals(): Promise<Goal[]> {
-  const result = await db.select().from(goals);
+  const user = await requireAuth();
+
+  const result = await db.select().from(goals).where(eq(goals.userId, user.id));
   return result as Goal[];
 }

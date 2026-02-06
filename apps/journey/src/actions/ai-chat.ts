@@ -2,7 +2,8 @@
 
 import { db } from '@/db';
 import { aiThreads, aiMessages, aiActions, tasks, projects, goals, journalEntries } from '@/db/schema';
-import { eq, asc, desc, sql } from 'drizzle-orm';
+import { eq, and, asc, desc, sql } from 'drizzle-orm';
+import { requireAuth } from '@/lib/auth';
 import type {
   AIThread,
   AIMessage,
@@ -15,22 +16,21 @@ import type {
 export async function getOrCreateThread(
   anchorPath?: string
 ): Promise<AIThread> {
+  const user = await requireAuth();
+
   // Try to find existing thread for this path
   if (anchorPath) {
     const existing = await db.select().from(aiThreads)
-      .where(eq(aiThreads.anchorPath, anchorPath));
+      .where(and(eq(aiThreads.anchorPath, anchorPath), eq(aiThreads.userId, user.id)));
 
     if (existing.length > 0) return existing[0] as AIThread;
   }
 
   // Create new thread
-  const now = new Date().toISOString();
   const thread = await db.insert(aiThreads).values({
-    id: crypto.randomUUID(),
+    userId: user.id,
     anchorPath: anchorPath || null,
     title: null,
-    createdAt: now,
-    updatedAt: now,
   }).returning();
 
   return thread[0] as AIThread;
@@ -54,9 +54,7 @@ export async function createMessage(
     completionTokens?: number;
   }
 ): Promise<AIMessage> {
-  const now = new Date().toISOString();
   const message = await db.insert(aiMessages).values({
-    id: crypto.randomUUID(),
     threadId,
     role,
     content,
@@ -64,12 +62,11 @@ export async function createMessage(
     model: options?.model || null,
     promptTokens: options?.promptTokens || null,
     completionTokens: options?.completionTokens || null,
-    createdAt: now,
   }).returning();
 
   // Update thread's updatedAt
   await db.update(aiThreads)
-    .set({ updatedAt: now })
+    .set({ updatedAt: new Date().toISOString() })
     .where(eq(aiThreads.id, threadId));
 
   return message[0] as AIMessage;
@@ -82,22 +79,21 @@ export async function createAction(
   payload: unknown,
   entityId?: string
 ): Promise<AIAction> {
-  const now = new Date().toISOString();
   const action = await db.insert(aiActions).values({
-    id: crypto.randomUUID(),
     messageId,
     actionType,
     entityType,
     entityId: entityId || null,
     payload: JSON.stringify(payload),
     status: 'pending',
-    createdAt: now,
   }).returning();
 
   return action[0] as AIAction;
 }
 
 export async function confirmAction(actionId: string): Promise<AIAction> {
+  const user = await requireAuth();
+
   const [action] = await db.select().from(aiActions).where(eq(aiActions.id, actionId));
   if (!action) throw new Error('Action not found');
   if (action.status !== 'pending') throw new Error('Action already processed');
@@ -112,7 +108,7 @@ export async function confirmAction(actionId: string): Promise<AIAction> {
   if (action.entityType === 'task') {
     if (action.actionType === 'create') {
       const newTask = await db.insert(tasks).values({
-        id: crypto.randomUUID(),
+        userId: user.id,
         title: payload.title,
         description: payload.description || null,
         domain: payload.domain || null,
@@ -121,107 +117,116 @@ export async function confirmAction(actionId: string): Promise<AIAction> {
         boardScope: payload.boardScope || null,
         projectId: payload.projectId || null,
         status: payload.status || 'backlog',
-        createdAt: now,
-        updatedAt: now,
       }).returning();
       entityId = newTask[0].id;
       snapshotAfter = newTask[0];
     } else if (action.actionType === 'update' && action.entityId) {
-      const [existing] = await db.select().from(tasks).where(eq(tasks.id, action.entityId));
+      const [existing] = await db.select().from(tasks)
+        .where(and(eq(tasks.id, action.entityId), eq(tasks.userId, user.id)));
+      if (!existing) throw new Error('Task not found');
       snapshotBefore = existing;
-      // Extract only valid task fields from payload (exclude taskId which is just for identifying the target)
       const { taskId: _, ...taskUpdates } = payload;
       await db.update(tasks)
         .set({ ...taskUpdates, updatedAt: now })
-        .where(eq(tasks.id, action.entityId));
+        .where(and(eq(tasks.id, action.entityId), eq(tasks.userId, user.id)));
       const [updated] = await db.select().from(tasks).where(eq(tasks.id, action.entityId));
       snapshotAfter = updated;
     } else if (action.actionType === 'delete' && action.entityId) {
-      const [existing] = await db.select().from(tasks).where(eq(tasks.id, action.entityId));
+      const [existing] = await db.select().from(tasks)
+        .where(and(eq(tasks.id, action.entityId), eq(tasks.userId, user.id)));
+      if (!existing) throw new Error('Task not found');
       snapshotBefore = existing;
-      await db.delete(tasks).where(eq(tasks.id, action.entityId));
+      await db.delete(tasks).where(and(eq(tasks.id, action.entityId), eq(tasks.userId, user.id)));
     }
   } else if (action.entityType === 'project') {
     if (action.actionType === 'create') {
       const newProject = await db.insert(projects).values({
-        id: crypto.randomUUID(),
+        userId: user.id,
         name: payload.name,
         description: payload.description || null,
         type: payload.type,
         goals: payload.goals || null,
         status: 'active',
-        createdAt: now,
-        updatedAt: now,
       }).returning();
       entityId = newProject[0].id;
       snapshotAfter = newProject[0];
     } else if (action.actionType === 'update' && action.entityId) {
-      const [existing] = await db.select().from(projects).where(eq(projects.id, action.entityId));
+      const [existing] = await db.select().from(projects)
+        .where(and(eq(projects.id, action.entityId), eq(projects.userId, user.id)));
+      if (!existing) throw new Error('Project not found');
       snapshotBefore = existing;
       const { projectId: _, ...projectUpdates } = payload;
       await db.update(projects)
         .set({ ...projectUpdates, updatedAt: now })
-        .where(eq(projects.id, action.entityId));
+        .where(and(eq(projects.id, action.entityId), eq(projects.userId, user.id)));
       const [updated] = await db.select().from(projects).where(eq(projects.id, action.entityId));
       snapshotAfter = updated;
     } else if (action.actionType === 'delete' && action.entityId) {
-      const [existing] = await db.select().from(projects).where(eq(projects.id, action.entityId));
+      const [existing] = await db.select().from(projects)
+        .where(and(eq(projects.id, action.entityId), eq(projects.userId, user.id)));
+      if (!existing) throw new Error('Project not found');
       snapshotBefore = existing;
       // Unlink tasks first
       await db.update(tasks)
         .set({ projectId: null })
-        .where(eq(tasks.projectId, action.entityId));
-      await db.delete(projects).where(eq(projects.id, action.entityId));
+        .where(and(eq(tasks.projectId, action.entityId), eq(tasks.userId, user.id)));
+      await db.delete(projects).where(and(eq(projects.id, action.entityId), eq(projects.userId, user.id)));
     }
   } else if (action.entityType === 'goal') {
     if (action.actionType === 'create') {
       const newGoal = await db.insert(goals).values({
-        id: crypto.randomUUID(),
+        userId: user.id,
         title: payload.title,
         description: payload.description || null,
         horizon: payload.horizon,
         status: 'active',
-        createdAt: now,
-        updatedAt: now,
       }).returning();
       entityId = newGoal[0].id;
       snapshotAfter = newGoal[0];
     } else if (action.actionType === 'update' && action.entityId) {
-      const [existing] = await db.select().from(goals).where(eq(goals.id, action.entityId));
+      const [existing] = await db.select().from(goals)
+        .where(and(eq(goals.id, action.entityId), eq(goals.userId, user.id)));
+      if (!existing) throw new Error('Goal not found');
       snapshotBefore = existing;
       const { goalId: _, ...goalUpdates } = payload;
       await db.update(goals)
         .set({ ...goalUpdates, updatedAt: now })
-        .where(eq(goals.id, action.entityId));
+        .where(and(eq(goals.id, action.entityId), eq(goals.userId, user.id)));
       const [updated] = await db.select().from(goals).where(eq(goals.id, action.entityId));
       snapshotAfter = updated;
     } else if (action.actionType === 'delete' && action.entityId) {
-      const [existing] = await db.select().from(goals).where(eq(goals.id, action.entityId));
+      const [existing] = await db.select().from(goals)
+        .where(and(eq(goals.id, action.entityId), eq(goals.userId, user.id)));
+      if (!existing) throw new Error('Goal not found');
       snapshotBefore = existing;
-      await db.delete(goals).where(eq(goals.id, action.entityId));
+      await db.delete(goals).where(and(eq(goals.id, action.entityId), eq(goals.userId, user.id)));
     }
   } else if (action.entityType === 'journal') {
     if (action.actionType === 'create') {
       const newEntry = await db.insert(journalEntries).values({
-        id: crypto.randomUUID(),
+        userId: user.id,
         content: payload.content,
-        createdAt: now,
       }).returning();
       entityId = newEntry[0].id;
       snapshotAfter = newEntry[0];
     } else if (action.actionType === 'update' && action.entityId) {
-      const [existing] = await db.select().from(journalEntries).where(eq(journalEntries.id, action.entityId));
+      const [existing] = await db.select().from(journalEntries)
+        .where(and(eq(journalEntries.id, action.entityId), eq(journalEntries.userId, user.id)));
+      if (!existing) throw new Error('Journal entry not found');
       snapshotBefore = existing;
       const { entryId: _, ...entryUpdates } = payload;
       await db.update(journalEntries)
         .set(entryUpdates)
-        .where(eq(journalEntries.id, action.entityId));
+        .where(and(eq(journalEntries.id, action.entityId), eq(journalEntries.userId, user.id)));
       const [updated] = await db.select().from(journalEntries).where(eq(journalEntries.id, action.entityId));
       snapshotAfter = updated;
     } else if (action.actionType === 'delete' && action.entityId) {
-      const [existing] = await db.select().from(journalEntries).where(eq(journalEntries.id, action.entityId));
+      const [existing] = await db.select().from(journalEntries)
+        .where(and(eq(journalEntries.id, action.entityId), eq(journalEntries.userId, user.id)));
+      if (!existing) throw new Error('Journal entry not found');
       snapshotBefore = existing;
-      await db.delete(journalEntries).where(eq(journalEntries.id, action.entityId));
+      await db.delete(journalEntries)
+        .where(and(eq(journalEntries.id, action.entityId), eq(journalEntries.userId, user.id)));
     }
   }
 
@@ -241,7 +246,6 @@ export async function confirmAction(actionId: string): Promise<AIAction> {
 }
 
 export async function rejectAction(actionId: string): Promise<AIAction> {
-  const now = new Date().toISOString();
   await db.update(aiActions)
     .set({ status: 'rejected' })
     .where(eq(aiActions.id, actionId));
@@ -251,6 +255,8 @@ export async function rejectAction(actionId: string): Promise<AIAction> {
 }
 
 export async function revertAction(actionId: string): Promise<AIAction> {
+  const user = await requireAuth();
+
   const [action] = await db.select().from(aiActions).where(eq(aiActions.id, actionId));
   if (!action) throw new Error('Action not found');
   if (action.status !== 'confirmed') throw new Error('Can only revert confirmed actions');
@@ -263,12 +269,12 @@ export async function revertAction(actionId: string): Promise<AIAction> {
   // Revert the action
   if (action.entityType === 'task' && action.entityId) {
     if (action.actionType === 'create') {
-      await db.delete(tasks).where(eq(tasks.id, action.entityId));
+      await db.delete(tasks).where(and(eq(tasks.id, action.entityId), eq(tasks.userId, user.id)));
     } else if (action.actionType === 'update') {
       const before = JSON.parse(action.snapshotBefore!);
       await db.update(tasks)
         .set({ ...before, updatedAt: now })
-        .where(eq(tasks.id, action.entityId));
+        .where(and(eq(tasks.id, action.entityId), eq(tasks.userId, user.id)));
     } else if (action.actionType === 'delete') {
       const before = JSON.parse(action.snapshotBefore!);
       await db.insert(tasks).values(before);
@@ -292,8 +298,10 @@ export async function getActionsByMessage(messageId: string): Promise<AIAction[]
 export async function getThreadByPath(
   anchorPath: string
 ): Promise<{ thread: AIThread; messages: AIMessage[] } | null> {
+  const user = await requireAuth();
+
   const existing = await db.select().from(aiThreads)
-    .where(eq(aiThreads.anchorPath, anchorPath));
+    .where(and(eq(aiThreads.anchorPath, anchorPath), eq(aiThreads.userId, user.id)));
 
   if (existing.length === 0) return null;
   const thread = existing[0];
@@ -317,11 +325,13 @@ export interface ThreadSummary {
 }
 
 export async function getThreadsByPath(anchorPath: string): Promise<ThreadSummary[]> {
+  const user = await requireAuth();
+
   // Get non-archived threads
   const threadRows = await db
     .select()
     .from(aiThreads)
-    .where(sql`${aiThreads.anchorPath} = ${anchorPath} AND ${aiThreads.archivedAt} IS NULL`)
+    .where(sql`${aiThreads.anchorPath} = ${anchorPath} AND ${aiThreads.userId} = ${user.id} AND ${aiThreads.archivedAt} IS NULL`)
     .orderBy(desc(aiThreads.updatedAt));
 
   // Get message counts for these threads
@@ -349,13 +359,12 @@ export async function getThreadsByPath(anchorPath: string): Promise<ThreadSummar
 }
 
 export async function createThread(anchorPath: string): Promise<AIThread> {
-  const now = new Date().toISOString();
+  const user = await requireAuth();
+
   const thread = await db.insert(aiThreads).values({
-    id: crypto.randomUUID(),
+    userId: user.id,
     anchorPath,
     title: null,
-    createdAt: now,
-    updatedAt: now,
   }).returning();
 
   return thread[0] as AIThread;
@@ -364,8 +373,10 @@ export async function createThread(anchorPath: string): Promise<AIThread> {
 export async function getThreadById(
   threadId: string
 ): Promise<{ thread: AIThread; messages: AIMessage[] } | null> {
+  const user = await requireAuth();
+
   const [thread] = await db.select().from(aiThreads)
-    .where(eq(aiThreads.id, threadId));
+    .where(and(eq(aiThreads.id, threadId), eq(aiThreads.userId, user.id)));
 
   if (!thread) return null;
 
@@ -406,8 +417,9 @@ export async function getTokenUsageStats(): Promise<TokenUsageByModel[]> {
 }
 
 export async function archiveThread(threadId: string): Promise<void> {
-  const now = new Date().toISOString();
+  const user = await requireAuth();
+
   await db.update(aiThreads)
-    .set({ archivedAt: now })
-    .where(eq(aiThreads.id, threadId));
+    .set({ archivedAt: new Date().toISOString() })
+    .where(and(eq(aiThreads.id, threadId), eq(aiThreads.userId, user.id)));
 }

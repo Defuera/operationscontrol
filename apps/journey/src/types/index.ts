@@ -4,6 +4,7 @@ export type BoardScope = 'day' | 'week' | 'month' | 'quarter';
 
 export interface Task {
   id: string;
+  userId: string;
   title: string;
   description: string | null;
   status: TaskStatus;
@@ -21,6 +22,7 @@ export type ProjectStatus = 'active' | 'completed' | 'archived';
 
 export interface Project {
   id: string;
+  userId: string;
   name: string;
   description: string | null;
   type: ProjectType;
@@ -34,6 +36,7 @@ export type LinkType = 'blocks' | 'related' | 'subtask';
 
 export interface TaskLink {
   id: string;
+  userId: string;
   taskAId: string;
   taskBId: string;
   linkType: LinkType;
@@ -42,6 +45,7 @@ export interface TaskLink {
 
 export interface JournalEntry {
   id: string;
+  userId: string;
   content: string;
   aiAnalysis: string | null;
   createdAt: string;
@@ -51,6 +55,7 @@ export type GoalStatus = 'active' | 'completed' | 'archived';
 
 export interface Goal {
   id: string;
+  userId: string;
   title: string;
   description: string | null;
   horizon: string;
@@ -67,6 +72,7 @@ export type AIActionStatus = 'pending' | 'confirmed' | 'rejected' | 'reverted';
 
 export interface AIThread {
   id: string;
+  userId: string;
   anchorPath: string | null;
   title: string | null;
   createdAt: string;

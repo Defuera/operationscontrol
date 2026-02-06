@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { tasks, projects, goals, journalEntries } from '@/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import type { Task, Project, Goal, JournalEntry } from '@/types';
 
 export interface ToolResult {
@@ -9,12 +9,14 @@ export interface ToolResult {
   error?: string;
 }
 
-export async function executeReadTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
+export async function executeReadTool(name: string, args: Record<string, unknown>, userId?: string): Promise<ToolResult> {
   try {
     switch (name) {
       case 'searchTasks': {
         // Build query with filters
-        let allTasks = await db.select().from(tasks);
+        let allTasks = userId
+          ? await db.select().from(tasks).where(eq(tasks.userId, userId))
+          : await db.select().from(tasks);
 
         if (args.status) {
           allTasks = allTasks.filter(t => t.status === args.status);
@@ -38,8 +40,10 @@ export async function executeReadTool(name: string, args: Record<string, unknown
       }
 
       case 'getTask': {
-        const result = await db.select().from(tasks)
-          .where(eq(tasks.id, args.taskId as string));
+        const conditions = userId
+          ? and(eq(tasks.id, args.taskId as string), eq(tasks.userId, userId))
+          : eq(tasks.id, args.taskId as string);
+        const result = await db.select().from(tasks).where(conditions);
         if (result.length === 0) {
           return { success: false, error: 'Task not found' };
         }
@@ -47,7 +51,9 @@ export async function executeReadTool(name: string, args: Record<string, unknown
       }
 
       case 'searchProjects': {
-        let allProjects = await db.select().from(projects);
+        let allProjects = userId
+          ? await db.select().from(projects).where(eq(projects.userId, userId))
+          : await db.select().from(projects);
 
         if (args.type) {
           allProjects = allProjects.filter(p => p.type === args.type);
@@ -66,13 +72,17 @@ export async function executeReadTool(name: string, args: Record<string, unknown
       }
 
       case 'getProject': {
-        const project = await db.select().from(projects)
-          .where(eq(projects.id, args.projectId as string));
+        const conditions = userId
+          ? and(eq(projects.id, args.projectId as string), eq(projects.userId, userId))
+          : eq(projects.id, args.projectId as string);
+        const project = await db.select().from(projects).where(conditions);
         if (project.length === 0) {
           return { success: false, error: 'Project not found' };
         }
-        const projectTasks = await db.select().from(tasks)
-          .where(eq(tasks.projectId, args.projectId as string));
+        const taskConditions = userId
+          ? and(eq(tasks.projectId, args.projectId as string), eq(tasks.userId, userId))
+          : eq(tasks.projectId, args.projectId as string);
+        const projectTasks = await db.select().from(tasks).where(taskConditions);
         return {
           success: true,
           data: {
@@ -83,7 +93,9 @@ export async function executeReadTool(name: string, args: Record<string, unknown
       }
 
       case 'searchGoals': {
-        let allGoals = await db.select().from(goals);
+        let allGoals = userId
+          ? await db.select().from(goals).where(eq(goals.userId, userId))
+          : await db.select().from(goals);
 
         if (args.horizon) {
           allGoals = allGoals.filter(g => g.horizon === args.horizon);
@@ -102,8 +114,10 @@ export async function executeReadTool(name: string, args: Record<string, unknown
       }
 
       case 'getGoal': {
-        const result = await db.select().from(goals)
-          .where(eq(goals.id, args.goalId as string));
+        const conditions = userId
+          ? and(eq(goals.id, args.goalId as string), eq(goals.userId, userId))
+          : eq(goals.id, args.goalId as string);
+        const result = await db.select().from(goals).where(conditions);
         if (result.length === 0) {
           return { success: false, error: 'Goal not found' };
         }
@@ -112,9 +126,14 @@ export async function executeReadTool(name: string, args: Record<string, unknown
 
       case 'searchJournalEntries': {
         const limit = (args.limit as number) || 10;
-        let entries = await db.select().from(journalEntries)
-          .orderBy(desc(journalEntries.createdAt))
-          .limit(limit);
+        let entries = userId
+          ? await db.select().from(journalEntries)
+              .where(eq(journalEntries.userId, userId))
+              .orderBy(desc(journalEntries.createdAt))
+              .limit(limit)
+          : await db.select().from(journalEntries)
+              .orderBy(desc(journalEntries.createdAt))
+              .limit(limit);
 
         if (args.query) {
           const searchTerm = (args.query as string).toLowerCase();
@@ -127,8 +146,10 @@ export async function executeReadTool(name: string, args: Record<string, unknown
       }
 
       case 'getJournalEntry': {
-        const result = await db.select().from(journalEntries)
-          .where(eq(journalEntries.id, args.entryId as string));
+        const conditions = userId
+          ? and(eq(journalEntries.id, args.entryId as string), eq(journalEntries.userId, userId))
+          : eq(journalEntries.id, args.entryId as string);
+        const result = await db.select().from(journalEntries).where(conditions);
         if (result.length === 0) {
           return { success: false, error: 'Journal entry not found' };
         }

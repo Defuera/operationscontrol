@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getAIProvider } from '@/lib/ai';
+import { createClient } from '@/lib/supabase/server';
 import type { Task } from '@/types';
 
 export async function POST(request: Request) {
   try {
+    // Auth guard
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { content, tasks } = await request.json() as {
       content: string;
       tasks?: Task[];

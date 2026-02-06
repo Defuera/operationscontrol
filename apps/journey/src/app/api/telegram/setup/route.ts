@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
 import { setWebhook, deleteWebhook, getWebhookInfo } from '@/lib/telegram';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
+    // Auth guard
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const info = await getWebhookInfo();
     return NextResponse.json(info);
   } catch (error) {
@@ -13,6 +21,13 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // Auth guard
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { webhookUrl, action } = await request.json();
 
     if (action === 'delete') {
