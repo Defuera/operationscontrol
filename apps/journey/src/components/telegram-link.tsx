@@ -34,6 +34,7 @@ export function TelegramLink() {
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -83,6 +84,25 @@ export function TelegramLink() {
       window.onTelegramAuth = undefined as unknown as (user: TelegramUser) => void;
     };
   }, []);
+
+  // Load Telegram widget script
+  useEffect(() => {
+    if (!widgetRef.current || status?.linked || loading) return;
+
+    // Clear any existing widget
+    widgetRef.current.innerHTML = '';
+
+    // Create script element for Telegram widget
+    const script = document.createElement('script');
+    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.async = true;
+    script.setAttribute('data-telegram-login', BOT_USERNAME);
+    script.setAttribute('data-size', 'large');
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+    script.setAttribute('data-request-access', 'write');
+
+    widgetRef.current.appendChild(script);
+  }, [status?.linked, loading]);
 
   const handleUnlink = async () => {
     setLinking(true);
@@ -135,26 +155,6 @@ export function TelegramLink() {
       </div>
     );
   }
-
-  const widgetRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!widgetRef.current || status?.linked) return;
-
-    // Clear any existing widget
-    widgetRef.current.innerHTML = '';
-
-    // Create script element for Telegram widget
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.async = true;
-    script.setAttribute('data-telegram-login', BOT_USERNAME);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
-
-    widgetRef.current.appendChild(script);
-  }, [status?.linked]);
 
   return (
     <div className="space-y-3">
