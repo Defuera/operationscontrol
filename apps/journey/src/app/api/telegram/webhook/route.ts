@@ -5,13 +5,15 @@ import { sendMessage, type TelegramUpdate } from '@/lib/telegram';
 import { allTools, isWriteTool } from '@/lib/ai/tools';
 import { executeReadTool, describeWriteAction } from '@/lib/ai/tool-executor';
 import {
-  getOrCreateThread,
+  getOrCreateThreadForUser,
   getThreadMessages,
   createMessage,
   createAction,
-  confirmAction,
+  confirmActionForUser,
   rejectAction,
 } from '@/actions/ai-chat';
+
+const TELEGRAM_USER_ID = process.env.TELEGRAM_USER_ID;
 import type { AIEntityType, AIActionType } from '@/types';
 
 const openai = new OpenAI();
