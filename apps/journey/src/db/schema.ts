@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, uuid, bigint } from 'drizzle-orm/pg-core';
 
 // Tasks
 export const tasks = pgTable('tasks', {
@@ -98,6 +98,15 @@ export const aiMessages = pgTable('ai_messages', {
   promptTokens: integer('prompt_tokens'), // Tokens in the prompt
   completionTokens: integer('completion_tokens'), // Tokens in the completion
   createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+});
+
+// User Profiles (for Telegram linking and other user-specific data)
+export const userProfiles = pgTable('user_profiles', {
+  userId: uuid('user_id').primaryKey(),
+  telegramId: bigint('telegram_id', { mode: 'number' }).unique(),
+  telegramUsername: text('telegram_username'),
+  createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'string' }).notNull().defaultNow(),
 });
 
 // AI Actions (proposed/executed changes)

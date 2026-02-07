@@ -12,9 +12,20 @@ import {
   confirmActionForUser,
   rejectAction,
 } from '@/actions/ai-chat';
-
-const TELEGRAM_USER_ID = process.env.TELEGRAM_USER_ID;
+import { db } from '@/db';
+import { userProfiles } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import type { AIEntityType, AIActionType } from '@/types';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://operationscontrol-jiyw.vercel.app';
+
+// Get userId from telegram chat id
+async function getUserIdFromTelegram(telegramId: number): Promise<string | null> {
+  const profile = await db.select().from(userProfiles)
+    .where(eq(userProfiles.telegramId, telegramId));
+
+  return profile.length > 0 ? profile[0].userId : null;
+}
 
 const openai = new OpenAI();
 
@@ -63,11 +74,18 @@ async function handleCallback(callback: NonNullable<TelegramUpdate['callback_que
   const chatId = callback.message?.chat.id;
   if (!chatId || !callback.data) return;
 
+  // Get userId from telegram id
+  const userId = await getUserIdFromTelegram(chatId);
+  if (!userId) {
+    await sendMessage(chatId, `⚠️ Please link your Telegram at ${APP_URL}/settings first.`);
+    return;
+  }
+
   const [action, actionId] = callback.data.split(':');
 
   try {
     if (action === 'confirm') {
-      await confirmAction(actionId);
+      await confirmActionForUser(actionId, userId);
       await sendMessage(chatId, '✅ Done!');
     } else if (action === 'reject') {
       await rejectAction(actionId);
@@ -83,17 +101,24 @@ async function handleCallback(callback: NonNullable<TelegramUpdate['callback_que
 }
 
 async function handleMessage(chatId: number, text: string) {
+  // Get userId from telegram id
+  const userId = await getUserIdFromTelegram(chatId);
+  if (!userId) {
+    await sendMessage(chatId, `👋 Welcome! Please link your Telegram account at ${APP_URL}/settings to use this bot.`);
+    return;
+  }
+
   // Quick commands
   if (text.startsWith('/')) {
-    const handled = await handleCommand(chatId, text);
+    const handled = await handleCommand(chatId, text, userId);
     if (handled) return;
   }
 
   // Regular message - send to AI
-  await handleAIChat(chatId, text);
+  await handleAIChat(chatId, text, userId);
 }
 
-async function handleCommand(chatId: number, text: string): Promise<boolean> {
+async function handleCommand(chatId: number, text: string, userId: string): Promise<boolean> {
   const [command, ...args] = text.split(' ');
 
   switch (command) {
@@ -109,16 +134,16 @@ async function handleCommand(chatId: number, text: string): Promise<boolean> {
       return true;
 
     case '/today':
-      await handleAIChat(chatId, 'What tasks are scheduled for today?');
+      await handleAIChat(chatId, 'What tasks are scheduled for today?', userId);
       return true;
 
     case '/status':
-      await handleAIChat(chatId, 'What tasks are currently in progress?');
+      await handleAIChat(chatId, 'What tasks are currently in progress?', userId);
       return true;
 
     case '/add':
       if (args.length > 0) {
-        await handleAIChat(chatId, `Create a new task: ${args.join(' ')}`);
+        await handleAIChat(chatId, `Create a new task: ${args.join(' ')}`, userId);
       } else {
         await sendMessage(chatId, 'Usage: /add <task title>');
       }
@@ -137,10 +162,10 @@ interface PendingActionData {
   description: string;
 }
 
-async function handleAIChat(chatId: number, text: string) {
+async function handleAIChat(chatId: number, text: string, userId: string) {
   try {
     // Use chatId as anchor to maintain conversation (telegram chats anchor to /journal)
-    const thread = await getOrCreateThread(`/journal/telegram-${chatId}`);
+    const thread = await getOrCreateThreadForUser(userId, `/telegram/${chatId}`);
     const history = await getThreadMessages(thread.id);
 
     await createMessage(thread.id, 'user', text);
@@ -192,7 +217,7 @@ async function handleAIChat(chatId: number, text: string) {
             result: JSON.stringify({ status: 'pending_confirmation', description }),
           });
         } else {
-          const result = await executeReadTool(toolName, args);
+          const result = await executeReadTool(toolName, args, userId);
           toolResults.push({ id: toolCall.id, result: JSON.stringify(result) });
         }
       }
