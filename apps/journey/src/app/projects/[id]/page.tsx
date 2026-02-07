@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ProjectDialog } from '@/components/projects';
 import { TaskDialog } from '@/components/kanban';
 import { useAIContext } from '@/components/ai-chat';
-import { Markdown } from '@/components/ui/markdown';
+import { EditableMarkdown } from '@/components/ui/editable-markdown';
 import { getProjectWithTasks, updateProject, deleteProject } from '@/actions/projects';
 import { createTask, updateTask, updateTaskStatus, deleteTask, addTaskToBoard, removeTaskFromBoard } from '@/actions/tasks';
 import {
@@ -61,6 +61,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     await updateProject(id, data);
     setProject(prev => prev ? { ...prev, ...data } : null);
     setProjectDialogOpen(false);
+  };
+
+  const handleDescriptionSave = async (description: string) => {
+    await updateProject(id, { description });
+    setProject(prev => prev ? { ...prev, description } : null);
   };
 
   const handleProjectDelete = async () => {
@@ -119,9 +124,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold mb-2">{project.name}</h1>
-          {project.description && (
-            <Markdown className="mb-2">{project.description}</Markdown>
-          )}
+          <EditableMarkdown
+            value={project.description || ''}
+            onChange={handleDescriptionSave}
+            placeholder="Click to add a description..."
+            className="mb-2"
+          />
           {project.goals && (
             <p className="text-sm text-gray-500">
               <strong>Goals:</strong> {project.goals}
