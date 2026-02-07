@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Send } from 'lucide-react';
 
 interface TelegramStatus {
   linked: boolean;
@@ -16,7 +17,6 @@ export function TelegramLink() {
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deepLink, setDeepLink] = useState<string | null>(null);
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -53,7 +53,6 @@ export function TelegramLink() {
 
         if (data.linked) {
           setStatus({ linked: true, telegram: data.telegram });
-          setDeepLink(null);
           setLinkToken(null);
           setLinking(false);
           if (pollingRef.current) {
@@ -62,7 +61,6 @@ export function TelegramLink() {
           }
         } else if (data.expired) {
           setError('Link expired. Please try again.');
-          setDeepLink(null);
           setLinkToken(null);
           setLinking(false);
           if (pollingRef.current) {
@@ -97,8 +95,9 @@ export function TelegramLink() {
         return;
       }
 
-      setDeepLink(data.deepLink);
       setLinkToken(data.token);
+      // Open Telegram immediately
+      window.open(data.deepLink, '_blank');
     } catch {
       setError('Failed to generate link');
       setLinking(false);
@@ -157,25 +156,16 @@ export function TelegramLink() {
     );
   }
 
-  if (deepLink) {
+  if (linkToken) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          Click the button below to open Telegram and link your account:
-        </p>
-        <Button asChild>
-          <a href={deepLink} target="_blank" rel="noopener noreferrer">
-            Open Telegram
-          </a>
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          Waiting for confirmation... (expires in 10 minutes)
+          Waiting for confirmation... Tap Start in Telegram to complete linking.
         </p>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => {
-            setDeepLink(null);
             setLinkToken(null);
             setLinking(false);
           }}
@@ -193,7 +183,8 @@ export function TelegramLink() {
         Link your Telegram to use the bot with your account.
       </p>
       <Button onClick={handleStartLink} disabled={linking}>
-        {linking ? 'Generating link...' : 'Link Telegram'}
+        <Send className="mr-2 h-4 w-4" />
+        {linking ? 'Opening Telegram...' : 'Link Telegram'}
       </Button>
       {error && <p className="text-sm text-red-500">{error}</p>}
     </div>
