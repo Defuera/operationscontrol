@@ -11,6 +11,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A custom productivity app with kanban board, projects, and AI-powered journal.
 
+## Database
+
+- **Current**: Supabase (PostgreSQL)
+- **Legacy**: SQLite (kept for history)
+
 ## AI Assistant Role
 
 Claude acts as a productivity partner:
