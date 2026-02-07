@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface TelegramUser {
@@ -27,7 +27,7 @@ declare global {
   }
 }
 
-const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'JourneyProdBot';
+const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'OperationsControlBot';
 
 export function TelegramLink() {
   const [status, setStatus] = useState<TelegramStatus | null>(null);
@@ -136,21 +136,34 @@ export function TelegramLink() {
     );
   }
 
+  const widgetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!widgetRef.current || status?.linked) return;
+
+    // Clear any existing widget
+    widgetRef.current.innerHTML = '';
+
+    // Create script element for Telegram widget
+    const script = document.createElement('script');
+    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.async = true;
+    script.setAttribute('data-telegram-login', BOT_USERNAME);
+    script.setAttribute('data-size', 'large');
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+    script.setAttribute('data-request-access', 'write');
+
+    widgetRef.current.appendChild(script);
+  }, [status?.linked]);
+
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
         Link your Telegram to use the bot with your account.
       </p>
 
-      {/* Telegram Login Widget */}
-      <script
-        async
-        src="https://telegram.org/js/telegram-widget.js?22"
-        data-telegram-login={BOT_USERNAME}
-        data-size="medium"
-        data-onauth="onTelegramAuth(user)"
-        data-request-access="write"
-      />
+      {/* Telegram Login Widget container */}
+      <div ref={widgetRef} />
 
       {linking && (
         <p className="text-sm text-muted-foreground">Linking...</p>
