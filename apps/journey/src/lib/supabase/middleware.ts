@@ -45,11 +45,12 @@ export async function updateSession(request: NextRequest) {
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth')
+    !request.nextUrl.pathname.startsWith('/auth') &&
+    !request.nextUrl.pathname.startsWith('/welcome')
   ) {
-    console.log('[Middleware] Redirecting to /login');
+    console.log('[Middleware] Redirecting to /welcome');
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    url.pathname = '/welcome';
     return NextResponse.redirect(url);
   }
 
