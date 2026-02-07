@@ -109,6 +109,16 @@ export const userProfiles = pgTable('user_profiles', {
   updatedAt: timestamp('updated_at', { mode: 'string' }).notNull().defaultNow(),
 });
 
+// Telegram Link Tokens (for deep link authentication)
+export const telegramLinkTokens = pgTable('telegram_link_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  token: text('token').notNull().unique(),
+  expiresAt: timestamp('expires_at', { mode: 'string' }).notNull(),
+  usedAt: timestamp('used_at', { mode: 'string' }),
+  createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+});
+
 // AI Actions (proposed/executed changes)
 export const aiActions = pgTable('ai_actions', {
   id: uuid('id').primaryKey().defaultRandom(),

@@ -3,16 +3,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 
-interface TelegramUser {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  auth_date: number;
-  hash: string;
-}
-
 interface TelegramStatus {
   linked: boolean;
   telegram?: {
@@ -21,20 +11,14 @@ interface TelegramStatus {
   };
 }
 
-declare global {
-  interface Window {
-    onTelegramAuth: (user: TelegramUser) => void;
-  }
-}
-
-const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'OperationsControlBot';
-
 export function TelegramLink() {
   const [status, setStatus] = useState<TelegramStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const widgetRef = useRef<HTMLDivElement>(null);
+  const [deepLink, setDeepLink] = useState<string | null>(null);
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -52,57 +36,74 @@ export function TelegramLink() {
     fetchStatus();
   }, [fetchStatus]);
 
+  // Poll for link completion
   useEffect(() => {
-    // Define the callback function for Telegram widget
-    window.onTelegramAuth = async (user: TelegramUser) => {
-      setLinking(true);
-      setError(null);
+    if (!linkToken || status?.linked) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      return;
+    }
 
+    pollingRef.current = setInterval(async () => {
       try {
-        const res = await fetch('/api/auth/telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(user),
-        });
-
+        const res = await fetch(`/api/auth/telegram/link?token=${linkToken}`);
         const data = await res.json();
 
-        if (!res.ok) {
-          setError(data.error || 'Failed to link Telegram');
-          return;
+        if (data.linked) {
+          setStatus({ linked: true, telegram: data.telegram });
+          setDeepLink(null);
+          setLinkToken(null);
+          setLinking(false);
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+        } else if (data.expired) {
+          setError('Link expired. Please try again.');
+          setDeepLink(null);
+          setLinkToken(null);
+          setLinking(false);
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
         }
-
-        setStatus({ linked: true, telegram: data.telegram });
       } catch {
-        setError('Failed to link Telegram');
-      } finally {
-        setLinking(false);
+        // Ignore polling errors
       }
-    };
+    }, 2000);
 
     return () => {
-      window.onTelegramAuth = undefined as unknown as (user: TelegramUser) => void;
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
     };
-  }, []);
+  }, [linkToken, status?.linked]);
 
-  // Load Telegram widget script
-  useEffect(() => {
-    if (!widgetRef.current || status?.linked || loading) return;
+  const handleStartLink = async () => {
+    setLinking(true);
+    setError(null);
 
-    // Clear any existing widget
-    widgetRef.current.innerHTML = '';
+    try {
+      const res = await fetch('/api/auth/telegram/link', { method: 'POST' });
+      const data = await res.json();
 
-    // Create script element for Telegram widget
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.async = true;
-    script.setAttribute('data-telegram-login', BOT_USERNAME);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
+      if (!res.ok) {
+        setError(data.error || 'Failed to generate link');
+        setLinking(false);
+        return;
+      }
 
-    widgetRef.current.appendChild(script);
-  }, [status?.linked, loading]);
+      setDeepLink(data.deepLink);
+      setLinkToken(data.token);
+    } catch {
+      setError('Failed to generate link');
+      setLinking(false);
+    }
+  };
 
   const handleUnlink = async () => {
     setLinking(true);
@@ -156,18 +157,44 @@ export function TelegramLink() {
     );
   }
 
+  if (deepLink) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Click the button below to open Telegram and link your account:
+        </p>
+        <Button asChild>
+          <a href={deepLink} target="_blank" rel="noopener noreferrer">
+            Open Telegram
+          </a>
+        </Button>
+        <p className="text-sm text-muted-foreground">
+          Waiting for confirmation... (expires in 10 minutes)
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setDeepLink(null);
+            setLinkToken(null);
+            setLinking(false);
+          }}
+        >
+          Cancel
+        </Button>
+        {error && <p className="text-sm text-red-500">{error}</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
         Link your Telegram to use the bot with your account.
       </p>
-
-      {/* Telegram Login Widget container */}
-      <div ref={widgetRef} />
-
-      {linking && (
-        <p className="text-sm text-muted-foreground">Linking...</p>
-      )}
+      <Button onClick={handleStartLink} disabled={linking}>
+        {linking ? 'Generating link...' : 'Link Telegram'}
+      </Button>
       {error && <p className="text-sm text-red-500">{error}</p>}
     </div>
   );

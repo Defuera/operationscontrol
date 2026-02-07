@@ -13,8 +13,8 @@ import {
   rejectAction,
 } from '@/actions/ai-chat';
 import { db } from '@/db';
-import { userProfiles } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { userProfiles, telegramLinkTokens } from '@/db/schema';
+import { eq, and, gt, isNull } from 'drizzle-orm';
 import type { AIEntityType, AIActionType } from '@/types';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://operationscontrol-jiyw.vercel.app';
@@ -25,6 +25,55 @@ async function getUserIdFromTelegram(telegramId: number): Promise<string | null>
     .where(eq(userProfiles.telegramId, telegramId));
 
   return profile.length > 0 ? profile[0].userId : null;
+}
+
+// Handle link token from deep link
+async function handleLinkToken(chatId: number, token: string, telegramUsername?: string): Promise<boolean> {
+  try {
+    // Find valid token
+    const linkToken = await db.select().from(telegramLinkTokens)
+      .where(and(
+        eq(telegramLinkTokens.token, token),
+        isNull(telegramLinkTokens.usedAt),
+        gt(telegramLinkTokens.expiresAt, new Date().toISOString())
+      ));
+
+    if (linkToken.length === 0) {
+      await sendMessage(chatId, '❌ Invalid or expired link. Please try again from the website.');
+      return false;
+    }
+
+    const userId = linkToken[0].userId;
+
+    // Mark token as used
+    await db.update(telegramLinkTokens)
+      .set({ usedAt: new Date().toISOString() })
+      .where(eq(telegramLinkTokens.id, linkToken[0].id));
+
+    // Upsert user profile with telegram data
+    await db.insert(userProfiles)
+      .values({
+        userId,
+        telegramId: chatId,
+        telegramUsername: telegramUsername || null,
+        updatedAt: new Date().toISOString(),
+      })
+      .onConflictDoUpdate({
+        target: userProfiles.userId,
+        set: {
+          telegramId: chatId,
+          telegramUsername: telegramUsername || null,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+
+    await sendMessage(chatId, '✅ Account linked successfully! You can now use the bot.');
+    return true;
+  } catch (error) {
+    console.error('Link token error:', error);
+    await sendMessage(chatId, '❌ Failed to link account. Please try again.');
+    return false;
+  }
 }
 
 const openai = new OpenAI();
@@ -60,7 +109,11 @@ export async function POST(request: Request) {
 
     // Handle messages
     if (update.message?.text) {
-      await handleMessage(update.message.chat.id, update.message.text);
+      await handleMessage(
+        update.message.chat.id,
+        update.message.text,
+        update.message.from?.username
+      );
     }
 
     return NextResponse.json({ ok: true });
@@ -100,7 +153,14 @@ async function handleCallback(callback: NonNullable<TelegramUpdate['callback_que
   pendingActions.delete(chatId);
 }
 
-async function handleMessage(chatId: number, text: string) {
+async function handleMessage(chatId: number, text: string, telegramUsername?: string) {
+  // Handle deep link for account linking (before auth check)
+  if (text.startsWith('/start link_')) {
+    const token = text.substring(12); // Remove '/start link_' prefix
+    await handleLinkToken(chatId, token, telegramUsername);
+    return;
+  }
+
   // Get userId from telegram id
   const userId = await getUserIdFromTelegram(chatId);
   if (!userId) {
@@ -110,7 +170,7 @@ async function handleMessage(chatId: number, text: string) {
 
   // Quick commands
   if (text.startsWith('/')) {
-    const handled = await handleCommand(chatId, text, userId);
+    const handled = await handleCommand(chatId, text, userId, telegramUsername);
     if (handled) return;
   }
 
@@ -118,11 +178,18 @@ async function handleMessage(chatId: number, text: string) {
   await handleAIChat(chatId, text, userId);
 }
 
-async function handleCommand(chatId: number, text: string, userId: string): Promise<boolean> {
+async function handleCommand(chatId: number, text: string, userId: string, telegramUsername?: string): Promise<boolean> {
   const [command, ...args] = text.split(' ');
 
   switch (command) {
     case '/start':
+      // Check for deep link token (e.g., /start link_abc123)
+      if (args.length > 0 && args[0].startsWith('link_')) {
+        const token = args[0].substring(5); // Remove 'link_' prefix
+        await handleLinkToken(chatId, token, telegramUsername);
+        return true;
+      }
+
       await sendMessage(chatId,
         '👋 Hi! I\'m your Journey assistant.\n\n' +
         'You can ask me anything about your tasks, projects, and goals.\n\n' +
