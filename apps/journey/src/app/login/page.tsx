@@ -1,6 +1,7 @@
 import { LoginForm } from '@/components/auth/login-form';
 
 export default function LoginPage() {
+  console.log('[LoginPage] Rendering login page');
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="flex flex-col items-center gap-8">
