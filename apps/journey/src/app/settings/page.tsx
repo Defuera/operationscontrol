@@ -13,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { getTokenUsageStats, type TokenUsageByModel } from '@/actions/ai-chat';
 import { DEFAULT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 const AI_MODELS = [
   { id: 'gpt-5.2', name: 'GPT-5.2', description: 'Flagship reasoning & general AI model', inputPrice: 2.50, outputPrice: 10.00 },
@@ -50,6 +52,13 @@ export default function SettingsPage() {
   const [promptSaved, setPromptSaved] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [usage, setUsage] = useState<TokenUsageByModel[]>([]);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/welcome');
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -191,6 +200,13 @@ export default function SettingsPage() {
           ) : (
             <p className="text-sm text-muted-foreground">No usage data yet.</p>
           )}
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Account</h2>
+          <Button variant="destructive" onClick={handleLogout}>
+            Log out
+          </Button>
         </Card>
       </div>
     </main>
