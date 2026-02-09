@@ -71,6 +71,13 @@ export interface TelegramUpdate {
     };
     date: number;
     text?: string;
+    voice?: {
+      file_id: string;
+      file_unique_id: string;
+      duration: number;
+      mime_type?: string;
+      file_size?: number;
+    };
   };
   callback_query?: {
     id: string;
@@ -84,4 +91,27 @@ export interface TelegramUpdate {
     };
     data?: string;
   };
+}
+
+export async function getFileUrl(fileId: string): Promise<string> {
+  const response = await fetch(`${TELEGRAM_API}${getToken()}/getFile?file_id=${fileId}`);
+  const data = await response.json();
+
+  if (!data.ok) {
+    throw new Error(`Failed to get file: ${data.description}`);
+  }
+
+  return `https://api.telegram.org/file/bot${getToken()}/${data.result.file_path}`;
+}
+
+export async function downloadFile(fileId: string): Promise<Buffer> {
+  const fileUrl = await getFileUrl(fileId);
+  const response = await fetch(fileUrl);
+
+  if (!response.ok) {
+    throw new Error(`Failed to download file: ${response.statusText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }

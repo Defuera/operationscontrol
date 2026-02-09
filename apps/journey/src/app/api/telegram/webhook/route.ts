@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { sendMessage, type TelegramUpdate } from '@/lib/telegram';
+import { sendMessage, downloadFile, type TelegramUpdate } from '@/lib/telegram';
 import { allTools, isWriteTool } from '@/lib/ai/tools';
 import { executeReadTool, describeWriteAction } from '@/lib/ai/tool-executor';
 import {
@@ -78,6 +78,21 @@ async function handleLinkToken(chatId: number, token: string, telegramUsername?:
 
 const openai = new OpenAI();
 
+async function transcribeVoice(fileId: string): Promise<string> {
+  const audioBuffer = await downloadFile(fileId);
+
+  // Create a File object from the buffer for the OpenAI API
+  const uint8Array = new Uint8Array(audioBuffer);
+  const file = new File([uint8Array], 'voice.ogg', { type: 'audio/ogg' });
+
+  const transcription = await openai.audio.transcriptions.create({
+    file,
+    model: 'whisper-1',
+  });
+
+  return transcription.text;
+}
+
 const SYSTEM_PROMPT = `You are a helpful productivity assistant for "The Journey" app via Telegram. You help users manage their tasks, projects, and goals across three life domains: Work, Side Projects, and Chores/Life.
 
 Your capabilities:
@@ -107,11 +122,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Handle messages
+    // Handle text messages
     if (update.message?.text) {
       await handleMessage(
         update.message.chat.id,
         update.message.text,
+        update.message.from?.username
+      );
+    }
+
+    // Handle voice messages
+    if (update.message?.voice) {
+      await handleVoiceMessage(
+        update.message.chat.id,
+        update.message.voice.file_id,
         update.message.from?.username
       );
     }
@@ -176,6 +200,33 @@ async function handleMessage(chatId: number, text: string, telegramUsername?: st
 
   // Regular message - send to AI
   await handleAIChat(chatId, text, userId);
+}
+
+async function handleVoiceMessage(chatId: number, fileId: string, telegramUsername?: string) {
+  // Get userId from telegram id
+  const userId = await getUserIdFromTelegram(chatId);
+  if (!userId) {
+    await sendMessage(chatId, `👋 Welcome! Please link your Telegram account at ${APP_URL}/settings to use this bot.`);
+    return;
+  }
+
+  try {
+    // Send typing indicator while transcribing
+    await sendMessage(chatId, '🎤 Transcribing...');
+
+    const transcribedText = await transcribeVoice(fileId);
+
+    if (!transcribedText.trim()) {
+      await sendMessage(chatId, '⚠️ Could not transcribe the voice message. Please try again.');
+      return;
+    }
+
+    // Process the transcribed text as a regular message
+    await handleAIChat(chatId, transcribedText, userId);
+  } catch (error) {
+    console.error('Voice message error:', error);
+    await sendMessage(chatId, '⚠️ Failed to process voice message. Please try again.');
+  }
 }
 
 async function handleCommand(chatId: number, text: string, userId: string, telegramUsername?: string): Promise<boolean> {

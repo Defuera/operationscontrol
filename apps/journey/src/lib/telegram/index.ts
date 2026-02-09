@@ -1,1 +1,1 @@
-export { sendMessage, setWebhook, deleteWebhook, getWebhookInfo, type TelegramUpdate } from './client';
+export { sendMessage, setWebhook, deleteWebhook, getWebhookInfo, downloadFile, type TelegramUpdate } from './client';
