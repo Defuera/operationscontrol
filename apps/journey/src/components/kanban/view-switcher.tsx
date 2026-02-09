@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 
-export type ViewType = 'day' | 'week' | 'quarter' | 'all';
+export type ViewType = 'day' | 'week' | 'all';
 
 interface ViewSwitcherProps {
   view: ViewType;
@@ -12,13 +12,12 @@ interface ViewSwitcherProps {
 }
 
 export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange }: ViewSwitcherProps) {
-  const views: ViewType[] = ['day', 'week', 'quarter', 'all'];
+  const views: ViewType[] = ['day', 'week', 'all'];
 
   const navigatePrev = () => {
     const newDate = new Date(currentDate);
     if (view === 'day') newDate.setDate(newDate.getDate() - 1);
     else if (view === 'week') newDate.setDate(newDate.getDate() - 7);
-    else newDate.setMonth(newDate.getMonth() - 3);
     onDateChange(newDate);
   };
 
@@ -26,7 +25,6 @@ export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange }: 
     const newDate = new Date(currentDate);
     if (view === 'day') newDate.setDate(newDate.getDate() + 1);
     else if (view === 'week') newDate.setDate(newDate.getDate() + 7);
-    else newDate.setMonth(newDate.getMonth() + 3);
     onDateChange(newDate);
   };
 
@@ -46,8 +44,7 @@ export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange }: 
       weekEnd.setDate(weekEnd.getDate() + 6);
       return `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     } else {
-      const q = Math.floor(currentDate.getMonth() / 3) + 1;
-      return `Q${q} ${currentDate.getFullYear()}`;
+      return 'Backlog';
     }
   };
 
@@ -65,11 +62,13 @@ export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange }: 
           </Button>
         ))}
       </div>
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={navigatePrev}>←</Button>
-        <Button variant="outline" size="sm" onClick={goToToday}>Today</Button>
-        <Button variant="outline" size="sm" onClick={navigateNext}>→</Button>
-      </div>
+      {view !== 'all' && (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={navigatePrev}>←</Button>
+          <Button variant="outline" size="sm" onClick={goToToday}>Today</Button>
+          <Button variant="outline" size="sm" onClick={navigateNext}>→</Button>
+        </div>
+      )}
       <span className="text-sm font-medium text-gray-600 min-w-[180px]">
         {formatDateLabel()}
       </span>

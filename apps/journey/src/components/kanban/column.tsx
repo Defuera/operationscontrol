@@ -3,7 +3,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { TaskCard } from './task-card';
-import type { Task, TaskStatus } from '@/types';
+import type { Task, TaskStatus, Project } from '@/types';
 
 const statusLabels: Record<TaskStatus, string> = {
   backlog: 'Backlog',
@@ -16,9 +16,11 @@ interface ColumnProps {
   status: TaskStatus;
   tasks: Task[];
   onTaskClick: (task: Task) => void;
+  showScope?: boolean;
+  projectMap?: Map<string, Project>;
 }
 
-export function Column({ status, tasks, onTaskClick }: ColumnProps) {
+export function Column({ status, tasks, onTaskClick, showScope, projectMap }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
@@ -43,6 +45,8 @@ export function Column({ status, tasks, onTaskClick }: ColumnProps) {
               key={task.id}
               task={task}
               onClick={() => onTaskClick(task)}
+              showScope={showScope}
+              projectName={task.projectId && projectMap ? projectMap.get(task.projectId)?.name : undefined}
             />
           ))}
         </SortableContext>

@@ -38,6 +38,12 @@ MUST follow these guides when working on this project:
 - `docs/ai_guides/package_creation_guide.md` - Creating new packages
 - `docs/ai_guides/guide_writing_guide.md` - Writing new AI guides
 
+## Changelog
+
+When making user-facing changes, update the changelog at `apps/journey/src/lib/changelog.ts`:
+1. Bump `CHANGELOG_VERSION` to today's date (YYYY-MM-DD)
+2. Add a new entry at the top of the `changelog` array with the new version, title, and items
+
 ## Key Principles
 
 - **Steady progress over speed** - Small consistent steps beat intense bursts

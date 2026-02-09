@@ -13,12 +13,21 @@ const domainColors: Record<string, string> = {
   life: 'bg-purple-100 text-purple-800',
 };
 
+const scopeLabels: Record<string, string> = {
+  day: 'D',
+  week: 'W',
+  month: 'M',
+  quarter: 'Q',
+};
+
 interface TaskCardProps {
   task: Task;
   onClick: () => void;
+  showScope?: boolean;
+  projectName?: string;
 }
 
-export function TaskCard({ task, onClick }: TaskCardProps) {
+export function TaskCard({ task, onClick, showScope, projectName }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -40,12 +49,20 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className="p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+      className="p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow relative"
       onClick={onClick}
     >
+      {showScope && task.boardScope && (
+        <Badge variant="outline" className="text-xs font-mono absolute top-1 right-1">
+          {scopeLabels[task.boardScope]}
+        </Badge>
+      )}
       <div className="flex flex-col gap-2">
-        <p className="font-medium text-sm">{task.title}</p>
-        <div className="flex items-center gap-2">
+        <p className="font-medium text-sm pr-6">{task.title}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          {projectName && (
+            <span className="text-xs text-muted-foreground">{projectName}</span>
+          )}
           {task.domain && (
             <Badge variant="secondary" className={domainColors[task.domain]}>
               {task.domain}

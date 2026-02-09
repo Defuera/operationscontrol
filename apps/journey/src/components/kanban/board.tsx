@@ -14,8 +14,7 @@ import { Column } from './column';
 import { TaskCard } from './task-card';
 import { TaskDialog } from './task-dialog';
 import { ViewSwitcher, ViewType } from './view-switcher';
-import { WeekView } from './week-view';
-import { QuarterView } from './quarter-view';
+import { DayView } from './day-view';
 import { Button } from '@/components/ui/button';
 import { createTask, updateTask, updateTaskStatus, deleteTask } from '@/actions/tasks';
 import type { Task, TaskStatus, TaskDomain, BoardScope, Project } from '@/types';
@@ -43,15 +42,26 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  // Map view to boardScope (day view shows day tasks, week shows week, etc.)
-  // 'all' view shows all tasks regardless of boardScope
-  const viewToScope: Record<Exclude<ViewType, 'all'>, BoardScope> = { day: 'day', week: 'week', quarter: 'quarter' };
-  const currentScope = view === 'all' ? null : viewToScope[view];
+  // Filter tasks based on view:
+  // - day: tasks with boardScope='day'
+  // - week: tasks with boardScope='week'
+  // - all: tasks with boardScope=null (backlog)
+  const getFilteredTasks = () => {
+    let filtered = tasks
+      .filter(t => domainFilter === 'all' || t.domain === domainFilter)
+      .filter(t => showProjectTasks || !t.projectId);
 
-  const filteredTasks = tasks
-    .filter(t => view === 'all' || t.boardScope === currentScope)
-    .filter(t => domainFilter === 'all' || t.domain === domainFilter)
-    .filter(t => showProjectTasks || !t.projectId);
+    if (view === 'day') {
+      return filtered.filter(t => t.boardScope === 'day');
+    } else if (view === 'week') {
+      return filtered.filter(t => t.boardScope === 'week');
+    } else {
+      // 'all' shows backlog - tasks with no scope assigned
+      return filtered.filter(t => !t.boardScope);
+    }
+  };
+
+  const filteredTasks = getFilteredTasks();
 
   const tasksByStatus = statuses.reduce((acc, status) => {
     acc[status] = filteredTasks.filter(t => t.status === status);
@@ -94,6 +104,25 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
     setDialogOpen(true);
   };
 
+  const handleToggleComplete = async (task: Task) => {
+    const newStatus: TaskStatus = task.status === 'done' ? 'todo' : 'done';
+    setTasks(prev =>
+      prev.map(t => (t.id === task.id ? { ...t, status: newStatus } : t))
+    );
+    try {
+      await updateTaskStatus(task.id, newStatus);
+    } catch {
+      setTasks(initialTasks);
+    }
+  };
+
+  // Get default board scope for new tasks based on current view
+  const getDefaultBoardScope = (): BoardScope | undefined => {
+    if (view === 'day') return 'day';
+    if (view === 'week') return 'week';
+    return undefined; // backlog has no scope
+  };
+
   const handleSave = async (data: {
     title: string;
     description: string;
@@ -107,10 +136,9 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
         prev.map(t => (t.id === editingTask.id ? { ...t, ...data } : t))
       );
     } else {
-      // In 'all' view, don't auto-assign boardScope unless specified
       const newTask = await createTask({
         ...data,
-        boardScope: data.boardScope || (currentScope ?? undefined),
+        boardScope: data.boardScope || getDefaultBoardScope(),
       });
       setTasks(prev => [...prev, newTask]);
     }
@@ -123,11 +151,6 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
       setTasks(prev => prev.filter(t => t.id !== editingTask.id));
       setDialogOpen(false);
     }
-  };
-
-  const handleWeekClick = (weekStart: Date) => {
-    setCurrentDate(weekStart);
-    setView('week');
   };
 
   return (
@@ -163,7 +186,16 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
         </div>
       </div>
 
-      {(view === 'day' || view === 'all') && (
+      {view === 'day' && (
+        <DayView
+          tasks={filteredTasks}
+          onTaskClick={handleTaskClick}
+          onToggleComplete={handleToggleComplete}
+          projectMap={projectMap}
+        />
+      )}
+
+      {(view === 'week' || view === 'all') && (
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
@@ -176,6 +208,7 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
                 status={status}
                 tasks={tasksByStatus[status]}
                 onTaskClick={handleTaskClick}
+                projectMap={projectMap}
               />
             ))}
           </div>
@@ -185,22 +218,6 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
         </DndContext>
       )}
 
-      {view === 'week' && (
-        <WeekView
-          tasks={filteredTasks}
-          currentDate={currentDate}
-          onTaskClick={handleTaskClick}
-        />
-      )}
-
-      {view === 'quarter' && (
-        <QuarterView
-          tasks={filteredTasks}
-          currentDate={currentDate}
-          onWeekClick={handleWeekClick}
-        />
-      )}
-
       <TaskDialog
         task={editingTask}
         open={dialogOpen}
@@ -208,7 +225,7 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
         onSave={handleSave}
         onDelete={editingTask ? handleDelete : undefined}
         showBoardScope={true}
-        defaultBoardScope={currentScope ?? undefined}
+        defaultBoardScope={getDefaultBoardScope()}
         projectName={editingTask?.projectId ? projectMap.get(editingTask.projectId)?.name : undefined}
       />
     </div>

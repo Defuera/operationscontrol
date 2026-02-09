@@ -137,8 +137,6 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain =
                   <SelectContent>
                     <SelectItem value="day">Day</SelectItem>
                     <SelectItem value="week">Week</SelectItem>
-                    <SelectItem value="month">Month</SelectItem>
-                    <SelectItem value="quarter">Quarter</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
