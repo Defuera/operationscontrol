@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { FileAttachments } from '@/components/files';
 import type { Goal, GoalStatus } from '@/types';
 
 const defaultHorizons = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly'];
@@ -120,6 +121,7 @@ export function GoalDialog({ goal, open, onClose, onSave, onDelete, existingHori
               </div>
             )}
           </div>
+          <FileAttachments entityType="goal" entityId={goal?.id || null} />
           <DialogFooter className="flex justify-between">
             {goal && onDelete && (
               <Button type="button" variant="destructive" onClick={onDelete}>

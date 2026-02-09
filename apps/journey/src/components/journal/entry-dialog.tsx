@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { FileAttachments } from '@/components/files';
 import type { JournalEntry, TaskDomain } from '@/types';
 import type { AnalysisResponse } from '@/lib/ai/types';
 
@@ -136,6 +137,8 @@ export function EntryDialog({
               )}
             </Card>
           )}
+
+          <FileAttachments entityType="journal" entityId={entry?.id || null} />
         </div>
 
         <DialogFooter className="flex justify-between">

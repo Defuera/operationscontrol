@@ -106,3 +106,16 @@ export interface AIAction {
 export interface AIContext {
   path: string;
 }
+
+// File Attachments
+export interface FileAttachment {
+  id: string;
+  userId: string;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  entityType: AIEntityType;
+  entityId: string;
+  createdAt: string;
+}

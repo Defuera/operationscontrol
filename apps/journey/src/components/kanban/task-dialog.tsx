@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { FileAttachments } from '@/components/files';
 import type { Task, TaskDomain, BoardScope } from '@/types';
 
 interface TaskDialogProps {
@@ -142,6 +143,7 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain =
               </div>
             )}
           </div>
+          <FileAttachments entityType="task" entityId={task?.id || null} />
           <DialogFooter className="flex justify-between">
             {task && onDelete && (
               <Button type="button" variant="destructive" onClick={onDelete}>

@@ -141,3 +141,18 @@ export const aiActions = pgTable('ai_actions', {
   executedAt: timestamp('executed_at', { mode: 'string' }),
   revertedAt: timestamp('reverted_at', { mode: 'string' }),
 });
+
+// Files (attachments to entities)
+export const files = pgTable('files', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  storagePath: text('storage_path').notNull(),
+  fileName: text('file_name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  fileSize: integer('file_size').notNull(),
+  entityType: text('entity_type', {
+    enum: ['task', 'project', 'goal', 'journal']
+  }).notNull(),
+  entityId: uuid('entity_id').notNull(),
+  createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+});

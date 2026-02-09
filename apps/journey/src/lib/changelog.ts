@@ -1,4 +1,4 @@
-export const CHANGELOG_VERSION = '2025-02-09';
+export const CHANGELOG_VERSION = '2026-02-09';
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '2026-02-09',
+    title: 'File Attachments',
+    items: [
+      'Attach files to tasks, projects, goals, and journal entries',
+      'Files stored securely with private signed URLs',
+      'Download and delete attachments from entity dialogs',
+    ],
+  },
   {
     version: '2025-02-09',
     title: 'Redesigned Task Views',

@@ -18,7 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Project, Task, ProjectType, ProjectStatus, TaskDomain, BoardScope } from '@/types';
+import { FileUploadDialog, FileList } from '@/components/files';
+import { getFilesByEntity, deleteFile } from '@/actions/files';
+import type { Project, Task, ProjectType, ProjectStatus, TaskDomain, BoardScope, FileAttachment } from '@/types';
 
 const statusColors: Record<string, string> = {
   backlog: 'bg-gray-100 text-gray-800',
@@ -33,6 +35,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { setContext } = useAIContext();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [files, setFiles] = useState<FileAttachment[]>([]);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -49,6 +52,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       setProject(data.project);
       setTasks(data.tasks);
     }
+    const projectFiles = await getFilesByEntity('project', id);
+    setFiles(projectFiles);
   };
 
   const handleProjectSave = async (data: {
@@ -141,10 +146,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </Button>
       </div>
 
+      {files.length > 0 && (
+        <div className="mb-6">
+          <FileList
+            files={files}
+            onFileDeleted={(fileId) => setFiles(prev => prev.filter(f => f.id !== fileId))}
+          />
+        </div>
+      )}
+
       <div className="flex items-center gap-4 mb-8">
         <Button onClick={() => { setEditingTask(null); setTaskDialogOpen(true); }}>
           + Add Task
         </Button>
+        <FileUploadDialog
+          entityType="project"
+          entityId={id}
+          onUploadComplete={(file) => setFiles(prev => [...prev, file])}
+        />
         <span className="text-sm text-gray-500">{tasks.length} tasks</span>
       </div>
 
