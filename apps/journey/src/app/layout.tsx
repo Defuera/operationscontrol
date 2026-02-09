@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AIContextProvider, AIChatDrawer } from "@/components/ai-chat";
 import { Nav } from "@/components/nav";
+import { ChangelogModal } from "@/components/changelog-modal";
 import { createClient } from "@/lib/supabase/server";
 
 const geistSans = Geist({
@@ -41,6 +42,7 @@ export default async function RootLayout({
             </header>
             {children}
             <AIChatDrawer />
+            <ChangelogModal />
           </AIContextProvider>
         ) : (
           children

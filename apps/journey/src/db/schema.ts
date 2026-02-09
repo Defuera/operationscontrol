@@ -105,6 +105,7 @@ export const userProfiles = pgTable('user_profiles', {
   userId: uuid('user_id').primaryKey(),
   telegramId: bigint('telegram_id', { mode: 'number' }).unique(),
   telegramUsername: text('telegram_username'),
+  lastSeenChangelogVersion: text('last_seen_changelog_version'),
   createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'string' }).notNull().defaultNow(),
 });
