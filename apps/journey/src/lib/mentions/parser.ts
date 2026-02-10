@@ -57,26 +57,50 @@ export function getUniqueMentions(text: string): ParsedMention[] {
   return unique;
 }
 
+export type AutocompleteMode = 'specific' | 'universal';
+
+export interface PartialMention {
+  mode: AutocompleteMode;
+  entityType?: MentionEntityType; // Only set for 'specific' mode
+  query: string;
+  startIndex: number;
+}
+
 /**
  * Detect if user is currently typing a mention (for autocomplete)
- * Returns the partial mention info if found, null otherwise
+ * Supports both specific mentions (task#, project#, etc.) and universal @ mentions
  */
 export function detectPartialMention(
   text: string,
   cursorPosition: number
-): { entityType: MentionEntityType; query: string; startIndex: number } | null {
-  // Look backwards from cursor to find a potential mention start
+): PartialMention | null {
   const textBeforeCursor = text.slice(0, cursorPosition);
 
-  // Pattern: entityType# followed by optional digits at the end of text
-  const partialMatch = textBeforeCursor.match(/(task|project|goal|journal)#(\d*)$/i);
+  // First check for specific entity type mentions: task#, project#, etc.
+  const specificMatch = textBeforeCursor.match(/(task|project|goal|journal)#(\d*)$/i);
+  if (specificMatch) {
+    const entityType = specificMatch[1].toLowerCase() as MentionEntityType;
+    const query = specificMatch[2];
+    const startIndex = textBeforeCursor.length - specificMatch[0].length;
 
-  if (partialMatch) {
-    const entityType = partialMatch[1].toLowerCase() as MentionEntityType;
-    const query = partialMatch[2]; // May be empty string
-    const startIndex = textBeforeCursor.length - partialMatch[0].length;
+    return { mode: 'specific', entityType, query, startIndex };
+  }
 
-    return { entityType, query, startIndex };
+  // Check for universal @ mention
+  // Match @ followed by word characters at end of text
+  const universalMatch = textBeforeCursor.match(/@(\w*)$/);
+  if (universalMatch) {
+    const matchStart = textBeforeCursor.length - universalMatch[0].length;
+    // Only trigger if @ is at start or after whitespace (not mid-word like email@)
+    const isValidPosition = matchStart === 0 || /\s/.test(textBeforeCursor[matchStart - 1]);
+
+    if (isValidPosition) {
+      return {
+        mode: 'universal' as const,
+        query: universalMatch[1],
+        startIndex: matchStart
+      };
+    }
   }
 
   return null;

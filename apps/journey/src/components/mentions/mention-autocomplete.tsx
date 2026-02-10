@@ -10,7 +10,6 @@ import type { MentionSearchResult } from '@/lib/mentions/types';
 interface MentionAutocompleteProps {
   entityType: MentionEntityType;
   query: string;
-  position: { top: number; left: number };
   onSelect: (result: MentionSearchResult) => void;
   onClose: () => void;
 }
@@ -18,7 +17,6 @@ interface MentionAutocompleteProps {
 export function MentionAutocomplete({
   entityType,
   query,
-  position,
   onSelect,
   onClose,
 }: MentionAutocompleteProps) {
@@ -108,8 +106,7 @@ export function MentionAutocomplete({
   return (
     <div
       ref={containerRef}
-      className="fixed z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-auto min-w-[280px]"
-      style={{ top: position.top, left: position.left }}
+      className="absolute z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-auto min-w-[280px] bottom-full mb-2 left-0"
     >
       {loading ? (
         <div className="p-3 text-sm text-gray-500">Searching...</div>

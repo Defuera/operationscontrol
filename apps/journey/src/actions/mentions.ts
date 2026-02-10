@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { entityShortCodes, tasks, projects, goals, journalEntries } from '@/db/schema';
-import { eq, and, desc, sql, like } from 'drizzle-orm';
+import { eq, and, desc, sql, ilike } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import type { MentionEntityType, EntityShortCode } from '@/types';
 import type { MentionSearchResult, ParsedMention, ResolvedMention } from '@/lib/mentions/types';
@@ -112,6 +112,34 @@ export async function searchEntitiesForMention(
   return results;
 }
 
+export interface GroupedSearchResults {
+  tasks: MentionSearchResult[];
+  projects: MentionSearchResult[];
+  goals: MentionSearchResult[];
+}
+
+/**
+ * Search across all entity types for universal @ autocomplete
+ */
+export async function searchAllEntities(
+  query: string
+): Promise<GroupedSearchResults> {
+  const user = await requireAuth();
+  const limitPerType = 5;
+
+  const [taskResults, projectResults, goalResults] = await Promise.all([
+    searchByTitle(user.id, 'task', query, limitPerType),
+    searchByTitle(user.id, 'project', query, limitPerType),
+    searchByTitle(user.id, 'goal', query, limitPerType),
+  ]);
+
+  return {
+    tasks: taskResults,
+    projects: projectResults,
+    goals: goalResults,
+  };
+}
+
 async function searchByShortCodePrefix(
   userId: string,
   entityType: MentionEntityType,
@@ -165,7 +193,7 @@ async function searchByTitle(
         .where(
           and(
             eq(tasks.userId, userId),
-            query ? like(tasks.title, searchPattern) : sql`TRUE`
+            query ? ilike(tasks.title, searchPattern) : sql`TRUE`
           )
         )
         .orderBy(desc(tasks.createdAt))
@@ -201,7 +229,7 @@ async function searchByTitle(
         .where(
           and(
             eq(projects.userId, userId),
-            query ? like(projects.name, searchPattern) : sql`TRUE`
+            query ? ilike(projects.name, searchPattern) : sql`TRUE`
           )
         )
         .orderBy(desc(projects.createdAt))
@@ -237,7 +265,7 @@ async function searchByTitle(
         .where(
           and(
             eq(goals.userId, userId),
-            query ? like(goals.title, searchPattern) : sql`TRUE`
+            query ? ilike(goals.title, searchPattern) : sql`TRUE`
           )
         )
         .orderBy(desc(goals.createdAt))
@@ -272,7 +300,7 @@ async function searchByTitle(
         .where(
           and(
             eq(journalEntries.userId, userId),
-            query ? like(journalEntries.content, searchPattern) : sql`TRUE`
+            query ? ilike(journalEntries.content, searchPattern) : sql`TRUE`
           )
         )
         .orderBy(desc(journalEntries.createdAt))

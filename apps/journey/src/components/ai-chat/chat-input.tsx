@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
-import { detectPartialMention } from '@/lib/mentions/parser';
+import { detectPartialMention, type AutocompleteMode } from '@/lib/mentions/parser';
 import { MentionAutocomplete } from '@/components/mentions/mention-autocomplete';
+import { UniversalAutocomplete } from '@/components/mentions/universal-autocomplete';
 import type { MentionEntityType } from '@/types';
 import type { MentionSearchResult } from '@/lib/mentions/types';
 
@@ -19,10 +20,10 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
 
   // Autocomplete state
   const [autocomplete, setAutocomplete] = useState<{
-    entityType: MentionEntityType;
+    mode: AutocompleteMode;
+    entityType?: MentionEntityType;
     query: string;
     startIndex: number;
-    position: { top: number; left: number };
   } | null>(null);
 
   useEffect(() => {
@@ -47,19 +48,11 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     const partial = detectPartialMention(message, cursorPos);
 
     if (partial) {
-      // Calculate position for autocomplete dropdown
-      const textarea = textareaRef.current;
-      const rect = textarea.getBoundingClientRect();
-
-      // Position above the input
       setAutocomplete({
+        mode: partial.mode,
         entityType: partial.entityType,
         query: partial.query,
         startIndex: partial.startIndex,
-        position: {
-          top: rect.top - 8 + window.scrollY, // Above the input with small gap
-          left: rect.left,
-        },
       });
     } else {
       setAutocomplete(null);
@@ -124,7 +117,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
         onSelect={checkForAutocomplete}
-        placeholder="Ask about your tasks... (type task#, project#, goal#, or journal# for mentions)"
+        placeholder="Ask about your tasks... (@ to search, or task#, project#, goal#)"
         disabled={disabled}
         className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[40px] max-h-[120px]"
         rows={1}
@@ -137,14 +130,17 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       >
         <Send className="h-4 w-4" />
       </Button>
-      {autocomplete && (
+      {autocomplete && autocomplete.mode === 'specific' && autocomplete.entityType && (
         <MentionAutocomplete
           entityType={autocomplete.entityType}
           query={autocomplete.query}
-          position={{
-            ...autocomplete.position,
-            top: autocomplete.position.top - 250, // Position above input
-          }}
+          onSelect={handleSelectMention}
+          onClose={() => setAutocomplete(null)}
+        />
+      )}
+      {autocomplete && autocomplete.mode === 'universal' && (
+        <UniversalAutocomplete
+          query={autocomplete.query}
           onSelect={handleSelectMention}
           onClose={() => setAutocomplete(null)}
         />

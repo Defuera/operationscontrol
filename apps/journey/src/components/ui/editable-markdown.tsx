@@ -35,7 +35,6 @@ export function EditableMarkdown({
     entityType: MentionEntityType;
     query: string;
     startIndex: number;
-    position: { top: number; left: number };
   } | null>(null);
 
   useEffect(() => {
@@ -63,26 +62,12 @@ export function EditableMarkdown({
     const cursorPos = textareaRef.current.selectionStart;
     const partial = detectPartialMention(editValue, cursorPos);
 
-    if (partial) {
-      // Calculate position for autocomplete dropdown
-      const textarea = textareaRef.current;
-      const rect = textarea.getBoundingClientRect();
-
-      // Estimate cursor position (simplified)
-      const lineHeight = 20;
-      const charWidth = 8;
-      const textBeforeCursor = editValue.slice(0, cursorPos);
-      const lines = textBeforeCursor.split('\n');
-      const currentLine = lines[lines.length - 1];
-
+    // Only support specific mentions (task#, project#, etc.) in this component
+    if (partial && partial.mode === 'specific' && partial.entityType) {
       setAutocomplete({
         entityType: partial.entityType,
         query: partial.query,
         startIndex: partial.startIndex,
-        position: {
-          top: rect.top + (lines.length * lineHeight) + lineHeight + window.scrollY,
-          left: rect.left + Math.min(currentLine.length * charWidth, rect.width - 300),
-        },
       });
     } else {
       setAutocomplete(null);
@@ -165,7 +150,6 @@ export function EditableMarkdown({
           <MentionAutocomplete
             entityType={autocomplete.entityType}
             query={autocomplete.query}
-            position={autocomplete.position}
             onSelect={handleSelectMention}
             onClose={() => setAutocomplete(null)}
           />
