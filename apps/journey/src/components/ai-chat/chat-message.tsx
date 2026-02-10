@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, X, ChevronDown, ChevronRight, Bug } from 'lucide-react';
+import { Check, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { getActionsByMessage } from '@/actions/ai-chat';
 import type { AIMessage, AIAction } from '@/types';
 
@@ -13,14 +13,12 @@ interface ChatMessageProps {
   message: AIMessage;
   onConfirmAction: (actionId: string) => Promise<void>;
   onRejectAction: (actionId: string) => Promise<void>;
-  showDebug?: boolean;
 }
 
-export function ChatMessage({ message, onConfirmAction, onRejectAction, showDebug = false }: ChatMessageProps) {
+export function ChatMessage({ message, onConfirmAction, onRejectAction }: ChatMessageProps) {
   const [actions, setActions] = useState<AIAction[]>([]);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [expandedActions, setExpandedActions] = useState<Set<string>>(new Set());
-  const [debugExpanded, setDebugExpanded] = useState(false);
 
   const toggleExpanded = (actionId: string) => {
     setExpandedActions(prev => {
@@ -154,28 +152,6 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction, showDebu
         );
       })}
 
-      {/* Debug section for assistant messages */}
-      {showDebug && message.role === 'assistant' && hasToolCalls && (
-        <div className="max-w-[90%]">
-          <button
-            onClick={() => setDebugExpanded(!debugExpanded)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Bug className="h-3 w-3" />
-            {debugExpanded ? 'Hide' : 'Show'} debug info
-          </button>
-          {debugExpanded && (
-            <div className="mt-1 p-2 bg-gray-100 rounded text-xs font-mono">
-              <div className="text-muted-foreground mb-1">
-                Tool calls • {message.promptTokens || 0} prompt + {message.completionTokens || 0} completion tokens
-              </div>
-              <pre className="whitespace-pre-wrap overflow-x-auto">
-                {JSON.stringify(JSON.parse(message.toolCalls || '[]'), null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

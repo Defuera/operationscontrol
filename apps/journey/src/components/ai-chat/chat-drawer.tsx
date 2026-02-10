@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MessageCircle, X, Plus, PanelLeftClose, PanelLeft, Archive, Bug } from 'lucide-react';
+import { MessageCircle, X, Plus, PanelLeftClose, PanelLeft, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function formatThreadDate(dateString: string): string {
@@ -30,7 +30,6 @@ function formatThreadDate(dateString: string): string {
 
 export function AIChatDrawer() {
   const [isWide, setIsWide] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
   const router = useRouter();
   const {
     isOpen,
@@ -88,15 +87,6 @@ export function AIChatDrawer() {
               )}
             </div>
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowDebug(!showDebug)}
-                title={showDebug ? 'Hide debug info' : 'Show debug info'}
-                className={showDebug ? 'text-orange-500' : ''}
-              >
-                <Bug className="h-4 w-4" />
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -160,7 +150,6 @@ export function AIChatDrawer() {
           isLoading={isLoading}
           onConfirmAction={handleConfirm}
           onRejectAction={rejectAction}
-          showDebug={showDebug}
         />
 
         {/* Input */}
