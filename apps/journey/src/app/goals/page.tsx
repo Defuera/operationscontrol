@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { GoalCard, GoalDialog } from '@/components/goals';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { getGoals, createGoal, updateGoal, deleteGoal } from '@/actions/goals';
 import type { Goal, GoalStatus } from '@/types';
 
@@ -34,6 +35,8 @@ export default function GoalsPage() {
     const data = await getGoals();
     setGoals(data);
   };
+
+  useRealtimeSync(['goals'], loadGoals);
 
   // Get unique horizons that have active goals
   const activeHorizons = sortHorizons(

@@ -15,6 +15,7 @@ import {
 import { EditableMarkdown } from '@/components/ui/editable-markdown';
 import { FileAttachments } from '@/components/files';
 import { useAIContext } from '@/components/ai-chat';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { getTask, updateTask, deleteTask } from '@/actions/tasks';
 import type { Task, TaskStatus, TaskDomain, BoardScope } from '@/types';
 
@@ -55,6 +56,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       setTitle(data.title);
     }
   };
+
+  useRealtimeSync(['tasks'], loadTask);
 
   const handleUpdate = async (updates: Partial<Task>) => {
     await updateTask(id, updates);

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ProjectCard, ProjectDialog } from '@/components/projects';
 import { useAIContext } from '@/components/ai-chat';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { getProjects, createProject } from '@/actions/projects';
 import { getTasks } from '@/actions/tasks';
 import type { Project, ProjectType, Task } from '@/types';
@@ -36,6 +37,8 @@ export default function ProjectsPage() {
     setProjects(projectsData);
     setTasks(tasksData);
   };
+
+  useRealtimeSync(['projects', 'tasks'], loadData);
 
   const handleSave = async (data: {
     name: string;

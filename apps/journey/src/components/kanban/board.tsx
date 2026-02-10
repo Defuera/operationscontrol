@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import {
   DndContext,
   DragEndEvent,
@@ -18,7 +19,8 @@ import { TaskDialog } from './task-dialog';
 import { ViewSwitcher, ViewType } from './view-switcher';
 import { DayView } from './day-view';
 import { Button } from '@/components/ui/button';
-import { createTask, updateTask, updateTaskStatus, deleteTask } from '@/actions/tasks';
+import { createTask, updateTask, updateTaskStatus, deleteTask, getTasks } from '@/actions/tasks';
+import { getProjects } from '@/actions/projects';
 import type { Task, TaskStatus, TaskDomain, BoardScope, Project } from '@/types';
 
 
@@ -30,12 +32,21 @@ interface BoardProps {
   projects?: Project[];
 }
 
-export function Board({ initialTasks, projects = [] }: BoardProps) {
+export function Board({ initialTasks, projects: initialProjects = [] }: BoardProps) {
   const router = useRouter();
   const isMobile = useIsMobile();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
   const projectMap = new Map(projects.map(p => [p.id, p]));
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  const refetchData = useCallback(async () => {
+    const [newTasks, newProjects] = await Promise.all([getTasks(), getProjects()]);
+    setTasks(newTasks);
+    setProjects(newProjects);
+  }, []);
+
+  useRealtimeSync(['tasks', 'projects'], refetchData, { enabled: !activeTask });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [domainFilter, setDomainFilter] = useState<TaskDomain | 'all'>('all');
@@ -94,7 +105,7 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
       try {
         await updateTaskStatus(taskId, newStatus);
       } catch {
-        setTasks(initialTasks);
+        refetchData();
       }
     }
   };
@@ -121,7 +132,7 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
     try {
       await updateTaskStatus(task.id, newStatus);
     } catch {
-      setTasks(initialTasks);
+      refetchData();
     }
   };
 

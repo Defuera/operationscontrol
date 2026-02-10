@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { EntryCard, EntryDialog } from '@/components/journal';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import {
   getJournalEntries,
   createJournalEntry,
@@ -31,6 +32,8 @@ export default function JournalPage() {
     setEntries(entriesData);
     setTasks(tasksData);
   };
+
+  useRealtimeSync(['journal_entries', 'tasks'], loadData);
 
   const handleSave = async (content: string) => {
     if (editingEntry) {

@@ -9,6 +9,14 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     version: '2026-02-10',
+    title: 'Live Sync',
+    items: [
+      'Data now updates automatically when changed by AI agents or other tabs',
+      'No more manual refreshing needed to see external changes',
+    ],
+  },
+  {
+    version: '2026-02-10',
     title: 'Task Detail Page',
     items: [
       'Tap a task to open its full detail page with all properties and files',

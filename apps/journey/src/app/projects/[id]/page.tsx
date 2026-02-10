@@ -10,6 +10,7 @@ import { ProjectDialog } from '@/components/projects';
 import { TaskDialog } from '@/components/kanban';
 import { useAIContext } from '@/components/ai-chat';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { EditableMarkdown } from '@/components/ui/editable-markdown';
 import { getProjectWithTasks, updateProject, deleteProject } from '@/actions/projects';
 import { createTask, updateTask, updateTaskStatus, deleteTask, addTaskToBoard, removeTaskFromBoard } from '@/actions/tasks';
@@ -65,6 +66,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     const projectFiles = await getFilesByEntity('project', id);
     setFiles(projectFiles);
   };
+
+  useRealtimeSync(['projects', 'tasks'], loadData);
 
   const handleProjectSave = async (data: {
     name: string;
