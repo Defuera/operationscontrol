@@ -2,18 +2,18 @@ import type { MentionEntityType } from '@/types';
 import type { ParsedMention, ResolvedMention } from './types';
 
 /**
- * Generate URL for an entity
+ * Generate URL for an entity using short code
  */
-export function getEntityUrl(entityType: MentionEntityType, entityId: string): string {
+export function getEntityUrl(entityType: MentionEntityType, shortCode: number): string {
   switch (entityType) {
     case 'task':
-      return `/tasks/${entityId}`;
+      return `/tasks/${shortCode}`;
     case 'project':
-      return `/projects/${entityId}`;
+      return `/projects/${shortCode}`;
     case 'goal':
-      return `/goals/${entityId}`;
+      return `/goals/${shortCode}`;
     case 'journal':
-      return `/journal/${entityId}`;
+      return `/journal/${shortCode}`;
     default:
       return '/';
   }
@@ -37,7 +37,7 @@ export function createResolvedMention(
       entityId: entityData.entityId,
       title: entityData.title,
       status: entityData.status,
-      url: getEntityUrl(mention.entityType, entityData.entityId),
+      url: getEntityUrl(mention.entityType, mention.shortCode),
       found: true,
     };
   }

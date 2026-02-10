@@ -111,8 +111,8 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
   };
 
   const handleTaskClick = (task: Task) => {
-    if (isMobile) {
-      router.push(`/tasks/${task.id}`);
+    if (isMobile && task.shortCode) {
+      router.push(`/tasks/${task.shortCode}`);
       return;
     }
     setEditingTask(task);

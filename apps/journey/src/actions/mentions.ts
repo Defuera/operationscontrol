@@ -65,6 +65,29 @@ export async function getShortCode(
 }
 
 /**
+ * Get the entity ID for a short code
+ */
+export async function getEntityIdByShortCode(
+  entityType: MentionEntityType,
+  shortCode: number
+): Promise<string | null> {
+  const user = await requireAuth();
+
+  const result = await db
+    .select({ entityId: entityShortCodes.entityId })
+    .from(entityShortCodes)
+    .where(
+      and(
+        eq(entityShortCodes.userId, user.id),
+        eq(entityShortCodes.entityType, entityType),
+        eq(entityShortCodes.shortCode, shortCode)
+      )
+    );
+
+  return result[0]?.entityId ?? null;
+}
+
+/**
  * Search entities for autocomplete suggestions
  */
 export async function searchEntitiesForMention(
@@ -396,7 +419,7 @@ export async function resolveMentions(
           entityId,
           title: details.title,
           status: details.status,
-          url: getEntityUrl(entityType, entityId),
+          url: getEntityUrl(entityType, mention.shortCode),
           found: true,
         });
       } else {

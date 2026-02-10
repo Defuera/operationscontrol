@@ -15,6 +15,7 @@ export interface Task {
   projectId: string | null;
   createdAt: string;
   updatedAt: string;
+  shortCode?: number;
 }
 
 export type ProjectType = 'side_project' | 'learning' | 'life';
@@ -30,6 +31,7 @@ export interface Project {
   goals: string | null;
   createdAt: string;
   updatedAt: string;
+  shortCode?: number;
 }
 
 export type LinkType = 'blocks' | 'related' | 'subtask';

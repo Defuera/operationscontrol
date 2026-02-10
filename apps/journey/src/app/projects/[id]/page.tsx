@@ -12,9 +12,8 @@ import { useAIContext } from '@/components/ai-chat';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { EditableMarkdown } from '@/components/ui/editable-markdown';
-import { getProjectWithTasks, updateProject, deleteProject } from '@/actions/projects';
-import { createTask, updateTask, updateTaskStatus, deleteTask, addTaskToBoard, removeTaskFromBoard } from '@/actions/tasks';
-import { getShortCode } from '@/actions/mentions';
+import { getProjectWithTasksByShortCode, updateProject, deleteProject } from '@/actions/projects';
+import { createTask, updateTask, deleteTask, addTaskToBoard, removeTaskFromBoard } from '@/actions/tasks';
 import { MentionBadge } from '@/components/mentions';
 import {
   Select,
@@ -43,6 +42,7 @@ const statusColors: Record<string, string> = {
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const shortCode = parseInt(id, 10);
   const router = useRouter();
   const { setContext } = useAIContext();
   const isMobile = useIsMobile();
@@ -52,28 +52,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [shortCode, setShortCode] = useState<number | null>(null);
 
   useEffect(() => {
     loadData();
-    loadShortCode();
     setContext(`/projects/${id}`);
     return () => setContext(null);
   }, [id, setContext]);
 
-  const loadShortCode = async () => {
-    const code = await getShortCode('project', id);
-    setShortCode(code);
-  };
-
   const loadData = async () => {
-    const data = await getProjectWithTasks(id);
+    const data = await getProjectWithTasksByShortCode(shortCode);
     if (data) {
       setProject(data.project);
       setTasks(data.tasks);
+      const projectFiles = await getFilesByEntity('project', data.project.id);
+      setFiles(projectFiles);
     }
-    const projectFiles = await getFilesByEntity('project', id);
-    setFiles(projectFiles);
   };
 
   useRealtimeSync(['projects', 'tasks'], loadData);
@@ -85,18 +78,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     goals: string;
     status?: ProjectStatus;
   }) => {
-    await updateProject(id, data);
+    if (!project) return;
+    await updateProject(project.id, data);
     setProject(prev => prev ? { ...prev, ...data } : null);
     setProjectDialogOpen(false);
   };
 
   const handleDescriptionSave = async (description: string) => {
-    await updateProject(id, { description });
+    if (!project) return;
+    await updateProject(project.id, { description });
     setProject(prev => prev ? { ...prev, description } : null);
   };
 
   const handleProjectDelete = async () => {
-    await deleteProject(id);
+    if (!project) return;
+    await deleteProject(project.id);
     router.push('/projects');
   };
 
@@ -106,11 +102,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     domain?: TaskDomain;
     priority: number;
   }) => {
+    if (!project) return;
     if (editingTask) {
       await updateTask(editingTask.id, data);
       setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...data } : t));
     } else {
-      const newTask = await createTask({ ...data, projectId: id });
+      const newTask = await createTask({ ...data, projectId: project.id });
       setTasks(prev => [...prev, newTask]);
     }
     setTaskDialogOpen(false);
@@ -155,8 +152,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     <main className="min-h-screen p-8">
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
-          {shortCode !== null && (
-            <MentionBadge entityType="project" shortCode={shortCode} />
+          {project.shortCode && (
+            <MentionBadge entityType="project" shortCode={project.shortCode} />
           )}
           <h1 className="text-2xl font-bold">{project.name}</h1>
         </div>
@@ -209,7 +206,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             addButton={
               <FileUploadDialog
                 entityType="project"
-                entityId={id}
+                entityId={project.id}
                 onUploadComplete={(file) => setFiles(prev => [...prev, file])}
                 variant="tile"
               />
@@ -243,8 +240,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <div
                     className="cursor-pointer"
                     onClick={() => {
-                      if (isMobile) {
-                        router.push(`/tasks/${task.id}`);
+                      if (isMobile && task.shortCode) {
+                        router.push(`/tasks/${task.shortCode}`);
                         return;
                       }
                       setEditingTask(task);

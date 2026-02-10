@@ -45,7 +45,7 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
   });
 
   revalidatePath('/projects');
-  return project[0] as Project;
+  return { ...project[0], shortCode: nextCode } as Project;
 }
 
 export async function updateProject(
@@ -76,7 +76,29 @@ export async function deleteProject(id: string): Promise<void> {
 export async function getProjects(): Promise<Project[]> {
   const user = await requireAuth();
 
-  const result = await db.select().from(projects).where(eq(projects.userId, user.id));
+  const result = await db
+    .select({
+      id: projects.id,
+      userId: projects.userId,
+      name: projects.name,
+      description: projects.description,
+      type: projects.type,
+      status: projects.status,
+      goals: projects.goals,
+      createdAt: projects.createdAt,
+      updatedAt: projects.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
+    .from(projects)
+    .leftJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, projects.id),
+        eq(entityShortCodes.entityType, 'project')
+      )
+    )
+    .where(eq(projects.userId, user.id));
+
   return result as Project[];
 }
 
@@ -86,14 +108,161 @@ export async function getProjectWithTasks(id: string): Promise<{
 } | null> {
   const user = await requireAuth();
 
-  const project = await db.select().from(projects)
+  const projectResult = await db
+    .select({
+      id: projects.id,
+      userId: projects.userId,
+      name: projects.name,
+      description: projects.description,
+      type: projects.type,
+      status: projects.status,
+      goals: projects.goals,
+      createdAt: projects.createdAt,
+      updatedAt: projects.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
+    .from(projects)
+    .leftJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, projects.id),
+        eq(entityShortCodes.entityType, 'project')
+      )
+    )
     .where(and(eq(projects.id, id), eq(projects.userId, user.id)));
-  if (project.length === 0) return null;
 
-  const projectTasks = await db.select().from(tasks)
+  if (projectResult.length === 0) return null;
+
+  const projectTasks = await db
+    .select({
+      id: tasks.id,
+      userId: tasks.userId,
+      title: tasks.title,
+      description: tasks.description,
+      status: tasks.status,
+      domain: tasks.domain,
+      priority: tasks.priority,
+      scheduledFor: tasks.scheduledFor,
+      boardScope: tasks.boardScope,
+      projectId: tasks.projectId,
+      createdAt: tasks.createdAt,
+      updatedAt: tasks.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
+    .from(tasks)
+    .leftJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, tasks.id),
+        eq(entityShortCodes.entityType, 'task')
+      )
+    )
     .where(and(eq(tasks.projectId, id), eq(tasks.userId, user.id)));
+
   return {
-    project: project[0] as Project,
+    project: projectResult[0] as Project,
+    tasks: projectTasks as Task[],
+  };
+}
+
+export async function getProjectByShortCode(shortCode: number): Promise<Project | null> {
+  const user = await requireAuth();
+
+  const result = await db
+    .select({
+      id: projects.id,
+      userId: projects.userId,
+      name: projects.name,
+      description: projects.description,
+      type: projects.type,
+      status: projects.status,
+      goals: projects.goals,
+      createdAt: projects.createdAt,
+      updatedAt: projects.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
+    .from(projects)
+    .innerJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, projects.id),
+        eq(entityShortCodes.entityType, 'project')
+      )
+    )
+    .where(
+      and(
+        eq(entityShortCodes.shortCode, shortCode),
+        eq(projects.userId, user.id)
+      )
+    );
+
+  return (result[0] as Project) || null;
+}
+
+export async function getProjectWithTasksByShortCode(shortCode: number): Promise<{
+  project: Project;
+  tasks: Task[];
+} | null> {
+  const user = await requireAuth();
+
+  const projectResult = await db
+    .select({
+      id: projects.id,
+      userId: projects.userId,
+      name: projects.name,
+      description: projects.description,
+      type: projects.type,
+      status: projects.status,
+      goals: projects.goals,
+      createdAt: projects.createdAt,
+      updatedAt: projects.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
+    .from(projects)
+    .innerJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, projects.id),
+        eq(entityShortCodes.entityType, 'project')
+      )
+    )
+    .where(
+      and(
+        eq(entityShortCodes.shortCode, shortCode),
+        eq(projects.userId, user.id)
+      )
+    );
+
+  if (projectResult.length === 0) return null;
+
+  const projectTasks = await db
+    .select({
+      id: tasks.id,
+      userId: tasks.userId,
+      title: tasks.title,
+      description: tasks.description,
+      status: tasks.status,
+      domain: tasks.domain,
+      priority: tasks.priority,
+      scheduledFor: tasks.scheduledFor,
+      boardScope: tasks.boardScope,
+      projectId: tasks.projectId,
+      createdAt: tasks.createdAt,
+      updatedAt: tasks.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
+    .from(tasks)
+    .leftJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, tasks.id),
+        eq(entityShortCodes.entityType, 'task')
+      )
+    )
+    .where(and(eq(tasks.projectId, projectResult[0].id), eq(tasks.userId, user.id)));
+
+  return {
+    project: projectResult[0] as Project,
     tasks: projectTasks as Task[],
   };
 }

@@ -16,8 +16,7 @@ import { EditableMarkdown } from '@/components/ui/editable-markdown';
 import { FileAttachments } from '@/components/files';
 import { useAIContext } from '@/components/ai-chat';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
-import { getTask, updateTask, deleteTask } from '@/actions/tasks';
-import { getShortCode } from '@/actions/mentions';
+import { getTaskByShortCode, updateTask, deleteTask } from '@/actions/tasks';
 import { MentionBadge } from '@/components/mentions';
 import type { Task, TaskStatus, TaskDomain, BoardScope } from '@/types';
 
@@ -40,36 +39,31 @@ function formatDate(dateStr: string): string {
 
 export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const shortCode = parseInt(id, 10);
   const router = useRouter();
   const { setContext } = useAIContext();
   const [task, setTask] = useState<Task | null>(null);
   const [title, setTitle] = useState('');
-  const [shortCode, setShortCode] = useState<number | null>(null);
 
   useEffect(() => {
     loadTask();
-    loadShortCode();
     setContext(`/tasks/${id}`);
     return () => setContext(null);
   }, [id, setContext]);
 
   const loadTask = async () => {
-    const data = await getTask(id);
+    const data = await getTaskByShortCode(shortCode);
     if (data) {
       setTask(data);
       setTitle(data.title);
     }
   };
 
-  const loadShortCode = async () => {
-    const code = await getShortCode('task', id);
-    setShortCode(code);
-  };
-
   useRealtimeSync(['tasks'], loadTask);
 
   const handleUpdate = async (updates: Partial<Task>) => {
-    await updateTask(id, updates);
+    if (!task) return;
+    await updateTask(task.id, updates);
     setTask(prev => prev ? { ...prev, ...updates } : null);
   };
 
@@ -81,7 +75,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   const handleDelete = async () => {
-    await deleteTask(id);
+    if (!task) return;
+    await deleteTask(task.id);
     router.back();
   };
 
@@ -105,8 +100,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         {/* Main content */}
         <div className="flex-1 space-y-4">
           <div className="flex items-center gap-3">
-            {shortCode !== null && (
-              <MentionBadge entityType="task" shortCode={shortCode} />
+            {task.shortCode && (
+              <MentionBadge entityType="task" shortCode={task.shortCode} />
             )}
             <Input
               value={title}
@@ -122,7 +117,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
             placeholder="Click to add a description..."
           />
 
-          <FileAttachments entityType="task" entityId={id} />
+          <FileAttachments entityType="task" entityId={task.id} />
         </div>
 
         {/* Right sidebar */}

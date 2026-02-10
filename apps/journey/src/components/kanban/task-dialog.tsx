@@ -82,10 +82,10 @@ export function TaskDialog({ task, open, onClose, onSave, onDelete, showDomain =
           <DialogTitle>{task ? 'Edit Task' : 'New Task'}</DialogTitle>
         </DialogHeader>
 
-        {task && (
+        {task?.shortCode && (
           <button
             type="button"
-            onClick={() => { onClose(); router.push(`/tasks/${task.id}`); }}
+            onClick={() => { onClose(); router.push(`/tasks/${task.shortCode}`); }}
             className="absolute top-4 right-10 rounded-xs opacity-70 transition-opacity hover:opacity-100 [&_svg]:size-4"
           >
             <Expand />

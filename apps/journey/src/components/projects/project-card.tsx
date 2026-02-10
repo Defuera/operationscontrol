@@ -24,8 +24,9 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, taskCount = 0 }: ProjectCardProps) {
+  const href = project.shortCode ? `/projects/${project.shortCode}` : `/projects/${project.id}`;
   return (
-    <Link href={`/projects/${project.id}`}>
+    <Link href={href}>
       <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
         <div className="flex items-start justify-between mb-2">
           <h3 className="font-semibold">{project.name}</h3>

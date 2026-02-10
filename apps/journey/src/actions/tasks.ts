@@ -51,7 +51,7 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
   });
 
   revalidatePath('/');
-  return task[0] as Task;
+  return { ...task[0], shortCode: nextCode } as Task;
 }
 
 export async function updateTask(
@@ -107,16 +107,100 @@ export async function deleteTask(id: string): Promise<void> {
 export async function getTasks(): Promise<Task[]> {
   const user = await requireAuth();
 
-  const result = await db.select().from(tasks).where(eq(tasks.userId, user.id));
+  const result = await db
+    .select({
+      id: tasks.id,
+      userId: tasks.userId,
+      title: tasks.title,
+      description: tasks.description,
+      status: tasks.status,
+      domain: tasks.domain,
+      priority: tasks.priority,
+      scheduledFor: tasks.scheduledFor,
+      boardScope: tasks.boardScope,
+      projectId: tasks.projectId,
+      createdAt: tasks.createdAt,
+      updatedAt: tasks.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
+    .from(tasks)
+    .leftJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, tasks.id),
+        eq(entityShortCodes.entityType, 'task')
+      )
+    )
+    .where(eq(tasks.userId, user.id));
+
   return result as Task[];
 }
 
 export async function getTask(id: string): Promise<Task | null> {
   const user = await requireAuth();
 
-  const result = await db.select()
+  const result = await db
+    .select({
+      id: tasks.id,
+      userId: tasks.userId,
+      title: tasks.title,
+      description: tasks.description,
+      status: tasks.status,
+      domain: tasks.domain,
+      priority: tasks.priority,
+      scheduledFor: tasks.scheduledFor,
+      boardScope: tasks.boardScope,
+      projectId: tasks.projectId,
+      createdAt: tasks.createdAt,
+      updatedAt: tasks.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
     .from(tasks)
+    .leftJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, tasks.id),
+        eq(entityShortCodes.entityType, 'task')
+      )
+    )
     .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+
+  return (result[0] as Task) || null;
+}
+
+export async function getTaskByShortCode(shortCode: number): Promise<Task | null> {
+  const user = await requireAuth();
+
+  const result = await db
+    .select({
+      id: tasks.id,
+      userId: tasks.userId,
+      title: tasks.title,
+      description: tasks.description,
+      status: tasks.status,
+      domain: tasks.domain,
+      priority: tasks.priority,
+      scheduledFor: tasks.scheduledFor,
+      boardScope: tasks.boardScope,
+      projectId: tasks.projectId,
+      createdAt: tasks.createdAt,
+      updatedAt: tasks.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
+    .from(tasks)
+    .innerJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, tasks.id),
+        eq(entityShortCodes.entityType, 'task')
+      )
+    )
+    .where(
+      and(
+        eq(entityShortCodes.shortCode, shortCode),
+        eq(tasks.userId, user.id)
+      )
+    );
 
   return (result[0] as Task) || null;
 }
@@ -124,8 +208,31 @@ export async function getTask(id: string): Promise<Task | null> {
 export async function getBoardTasks(): Promise<Task[]> {
   const user = await requireAuth();
 
-  const result = await db.select()
+  const result = await db
+    .select({
+      id: tasks.id,
+      userId: tasks.userId,
+      title: tasks.title,
+      description: tasks.description,
+      status: tasks.status,
+      domain: tasks.domain,
+      priority: tasks.priority,
+      scheduledFor: tasks.scheduledFor,
+      boardScope: tasks.boardScope,
+      projectId: tasks.projectId,
+      createdAt: tasks.createdAt,
+      updatedAt: tasks.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
     .from(tasks)
+    .leftJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, tasks.id),
+        eq(entityShortCodes.entityType, 'task')
+      )
+    )
     .where(and(isNotNull(tasks.boardScope), eq(tasks.userId, user.id)));
+
   return result as Task[];
 }
