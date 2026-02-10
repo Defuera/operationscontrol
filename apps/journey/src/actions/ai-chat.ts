@@ -1,9 +1,10 @@
 'use server';
 
 import { db } from '@/db';
-import { aiThreads, aiMessages, aiActions, tasks, projects, goals, journalEntries } from '@/db/schema';
+import { aiThreads, aiMessages, aiActions, tasks, projects, goals, journalEntries, files } from '@/db/schema';
 import { eq, and, asc, desc, sql } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import type {
   AIThread,
   AIMessage,
@@ -232,6 +233,19 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
       snapshotBefore = existing;
       await db.delete(journalEntries)
         .where(and(eq(journalEntries.id, action.entityId), eq(journalEntries.userId, userId)));
+    }
+  } else if (action.entityType === 'file') {
+    if (action.actionType === 'delete' && action.entityId) {
+      const [existing] = await db.select().from(files)
+        .where(and(eq(files.id, action.entityId), eq(files.userId, userId)));
+      if (!existing) throw new Error('File not found');
+      snapshotBefore = existing;
+      // Delete from Supabase Storage
+      const supabase = await createClient();
+      await supabase.storage.from('attachments').remove([existing.storagePath]);
+      // Delete from database
+      await db.delete(files)
+        .where(and(eq(files.id, action.entityId), eq(files.userId, userId)));
     }
   }
 

@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { FileUploadDialog } from './file-upload-dialog';
 import { FileList } from './file-list';
 import { getFilesByEntity } from '@/actions/files';
-import type { AIEntityType, FileAttachment } from '@/types';
+import type { FileEntityType, FileAttachment } from '@/types';
 
 interface FileAttachmentsProps {
-  entityType: AIEntityType;
+  entityType: FileEntityType;
   entityId: string | null;
 }
 

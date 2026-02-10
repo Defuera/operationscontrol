@@ -128,7 +128,7 @@ export const aiActions = pgTable('ai_actions', {
     enum: ['create', 'update', 'delete']
   }).notNull(),
   entityType: text('entity_type', {
-    enum: ['task', 'project', 'goal', 'journal']
+    enum: ['task', 'project', 'goal', 'journal', 'file']
   }).notNull(),
   entityId: uuid('entity_id'),
   payload: text('payload').notNull(), // JSON string of the action data

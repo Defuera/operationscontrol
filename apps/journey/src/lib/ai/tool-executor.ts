@@ -1,7 +1,7 @@
 import { db } from '@/db';
-import { tasks, projects, goals, journalEntries } from '@/db/schema';
+import { tasks, projects, goals, journalEntries, files } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import type { Task, Project, Goal, JournalEntry } from '@/types';
+import type { Task, Project, Goal, JournalEntry, FileAttachment, FileEntityType } from '@/types';
 
 export interface ToolResult {
   success: boolean;
@@ -156,6 +156,31 @@ export async function executeReadTool(name: string, args: Record<string, unknown
         return { success: true, data: result[0] as JournalEntry };
       }
 
+      case 'getFilesByEntity': {
+        const entityType = args.entityType as FileEntityType;
+        const entityId = args.entityId as string;
+        const conditions = userId
+          ? and(
+              eq(files.entityType, entityType),
+              eq(files.entityId, entityId),
+              eq(files.userId, userId)
+            )
+          : and(eq(files.entityType, entityType), eq(files.entityId, entityId));
+        const result = await db.select().from(files).where(conditions);
+        return { success: true, data: result as FileAttachment[] };
+      }
+
+      case 'getFile': {
+        const conditions = userId
+          ? and(eq(files.id, args.fileId as string), eq(files.userId, userId))
+          : eq(files.id, args.fileId as string);
+        const result = await db.select().from(files).where(conditions);
+        if (result.length === 0) {
+          return { success: false, error: 'File not found' };
+        }
+        return { success: true, data: result[0] as FileAttachment };
+      }
+
       default:
         return { success: false, error: `Unknown tool: ${name}` };
     }
@@ -215,6 +240,10 @@ export function describeWriteAction(
       return `Update journal entry`;
     case 'deleteJournalEntry':
       return `Delete journal entry`;
+
+    // Files
+    case 'deleteFile':
+      return `Delete file attachment`;
 
     default:
       return `${name}: ${JSON.stringify(args)}`;

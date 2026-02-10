@@ -171,6 +171,45 @@ export const readTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'getFilesByEntity',
+      description: 'Get all files attached to a specific entity (task, project, goal, or journal entry)',
+      parameters: {
+        type: 'object',
+        properties: {
+          entityType: {
+            type: 'string',
+            enum: ['task', 'project', 'goal', 'journal'],
+            description: 'The type of entity',
+          },
+          entityId: {
+            type: 'string',
+            description: 'The ID of the entity',
+          },
+        },
+        required: ['entityType', 'entityId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getFile',
+      description: 'Get a specific file by ID',
+      parameters: {
+        type: 'object',
+        properties: {
+          fileId: {
+            type: 'string',
+            description: 'The file ID',
+          },
+        },
+        required: ['fileId'],
+      },
+    },
+  },
 ];
 
 // Write tools (require confirmation)
@@ -484,6 +523,23 @@ export const writeTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'deleteFile',
+      description: 'Delete a file attachment permanently',
+      parameters: {
+        type: 'object',
+        properties: {
+          fileId: {
+            type: 'string',
+            description: 'The ID of the file to delete',
+          },
+        },
+        required: ['fileId'],
+      },
+    },
+  },
 ];
 
 export const allTools = [...readTools, ...writeTools];
@@ -493,12 +549,14 @@ export const writeToolNames = [
   'createProject', 'updateProject', 'deleteProject',
   'createGoal', 'updateGoal', 'deleteGoal',
   'createJournalEntry', 'updateJournalEntry', 'deleteJournalEntry',
+  'deleteFile',
 ];
 export const readToolNames = [
   'searchTasks', 'getTask',
   'searchProjects', 'getProject',
   'searchGoals', 'getGoal',
   'searchJournalEntries', 'getJournalEntry',
+  'getFilesByEntity', 'getFile',
 ];
 
 export function isWriteTool(name: string): boolean {

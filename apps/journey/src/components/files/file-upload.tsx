@@ -3,10 +3,10 @@
 import { useState, useRef } from 'react';
 import { Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { AIEntityType, FileAttachment } from '@/types';
+import type { FileEntityType, FileAttachment } from '@/types';
 
 interface FileUploadProps {
-  entityType: AIEntityType;
+  entityType: FileEntityType;
   entityId: string;
   onUploadComplete: (file: FileAttachment) => void;
 }

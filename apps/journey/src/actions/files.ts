@@ -6,13 +6,13 @@ import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import type { FileAttachment, AIEntityType } from '@/types';
+import type { FileAttachment, FileEntityType } from '@/types';
 
 const BUCKET_NAME = 'attachments';
 const SIGNED_URL_EXPIRY = 60 * 60; // 1 hour
 
 export async function getFilesByEntity(
-  entityType: AIEntityType,
+  entityType: FileEntityType,
   entityId: string
 ): Promise<FileAttachment[]> {
   const user = await requireAuth();
@@ -85,7 +85,7 @@ export async function createFileRecord(data: {
   fileName: string;
   mimeType: string;
   fileSize: number;
-  entityType: AIEntityType;
+  entityType: FileEntityType;
   entityId: string;
 }): Promise<FileAttachment> {
   const user = await requireAuth();

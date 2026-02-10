@@ -9,10 +9,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { AIEntityType, FileAttachment } from '@/types';
+import type { FileEntityType, FileAttachment } from '@/types';
 
 interface FileUploadDialogProps {
-  entityType: AIEntityType;
+  entityType: FileEntityType;
   entityId: string;
   onUploadComplete: (file: FileAttachment) => void;
   variant?: 'button' | 'tile';

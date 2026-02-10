@@ -67,7 +67,8 @@ export interface Goal {
 // AI Chat Types
 export type AIMessageRole = 'user' | 'assistant';
 export type AIActionType = 'create' | 'update' | 'delete';
-export type AIEntityType = 'task' | 'project' | 'goal' | 'journal';
+export type AIEntityType = 'task' | 'project' | 'goal' | 'journal' | 'file';
+export type FileEntityType = 'task' | 'project' | 'goal' | 'journal';
 export type AIActionStatus = 'pending' | 'confirmed' | 'rejected' | 'reverted';
 
 export interface AIThread {
@@ -115,7 +116,7 @@ export interface FileAttachment {
   fileName: string;
   mimeType: string;
   fileSize: number;
-  entityType: AIEntityType;
+  entityType: FileEntityType;
   entityId: string;
   createdAt: string;
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createFileRecord } from '@/actions/files';
-import type { AIEntityType } from '@/types';
+import type { FileEntityType } from '@/types';
 
 const BUCKET_NAME = 'attachments';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const entityType = formData.get('entityType') as AIEntityType | null;
+    const entityType = formData.get('entityType') as FileEntityType | null;
     const entityId = formData.get('entityId') as string | null;
 
     if (!file || !entityType || !entityId) {

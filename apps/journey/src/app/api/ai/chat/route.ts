@@ -175,7 +175,7 @@ export async function POST(request: Request) {
           // Queue write action data for later creation (after message is saved)
           const entityType = getEntityType(toolName);
           const actionType = getActionType(toolName);
-          const entityId = args.taskId || args.projectId || args.goalId;
+          const entityId = args.taskId || args.projectId || args.goalId || args.fileId || args.entryId;
 
           pendingActionData.push({
             actionType,
@@ -284,6 +284,7 @@ function getEntityType(toolName: string): AIEntityType {
   if (toolName.includes('Project')) return 'project';
   if (toolName.includes('Goal')) return 'goal';
   if (toolName.includes('Journal')) return 'journal';
+  if (toolName.includes('File')) return 'file';
   return 'task';
 }
 
