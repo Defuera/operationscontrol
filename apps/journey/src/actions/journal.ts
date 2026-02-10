@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/db';
-import { journalEntries } from '@/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { journalEntries, entityShortCodes } from '@/db/schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth';
 import type { JournalEntry } from '@/types';
@@ -14,6 +14,24 @@ export async function createJournalEntry(content: string): Promise<JournalEntry>
     userId: user.id,
     content,
   }).returning();
+
+  // Assign short code for entity linking
+  const maxResult = await db
+    .select({ maxCode: sql<number>`COALESCE(MAX(short_code), 0)` })
+    .from(entityShortCodes)
+    .where(
+      and(
+        eq(entityShortCodes.userId, user.id),
+        eq(entityShortCodes.entityType, 'journal')
+      )
+    );
+  const nextCode = (maxResult[0]?.maxCode || 0) + 1;
+  await db.insert(entityShortCodes).values({
+    userId: user.id,
+    entityType: 'journal',
+    entityId: entry[0].id,
+    shortCode: nextCode,
+  });
 
   revalidatePath('/journal');
   return entry[0] as JournalEntry;

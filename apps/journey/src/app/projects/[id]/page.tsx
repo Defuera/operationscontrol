@@ -14,6 +14,8 @@ import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { EditableMarkdown } from '@/components/ui/editable-markdown';
 import { getProjectWithTasks, updateProject, deleteProject } from '@/actions/projects';
 import { createTask, updateTask, updateTaskStatus, deleteTask, addTaskToBoard, removeTaskFromBoard } from '@/actions/tasks';
+import { getShortCode } from '@/actions/mentions';
+import { MentionBadge } from '@/components/mentions';
 import {
   Select,
   SelectContent,
@@ -50,12 +52,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [shortCode, setShortCode] = useState<number | null>(null);
 
   useEffect(() => {
     loadData();
+    loadShortCode();
     setContext(`/projects/${id}`);
     return () => setContext(null);
   }, [id, setContext]);
+
+  const loadShortCode = async () => {
+    const code = await getShortCode('project', id);
+    setShortCode(code);
+  };
 
   const loadData = async () => {
     const data = await getProjectWithTasks(id);
@@ -145,7 +154,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   return (
     <main className="min-h-screen p-8">
       <div className="flex items-start justify-between mb-6">
-        <h1 className="text-2xl font-bold">{project.name}</h1>
+        <div className="flex items-center gap-3">
+          {shortCode !== null && (
+            <MentionBadge entityType="project" shortCode={shortCode} />
+          )}
+          <h1 className="text-2xl font-bold">{project.name}</h1>
+        </div>
         <Button variant="outline" onClick={() => setProjectDialogOpen(true)}>
           Edit Project
         </Button>

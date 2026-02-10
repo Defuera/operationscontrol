@@ -17,6 +17,8 @@ import { FileAttachments } from '@/components/files';
 import { useAIContext } from '@/components/ai-chat';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import { getTask, updateTask, deleteTask } from '@/actions/tasks';
+import { getShortCode } from '@/actions/mentions';
+import { MentionBadge } from '@/components/mentions';
 import type { Task, TaskStatus, TaskDomain, BoardScope } from '@/types';
 
 function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -42,9 +44,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const { setContext } = useAIContext();
   const [task, setTask] = useState<Task | null>(null);
   const [title, setTitle] = useState('');
+  const [shortCode, setShortCode] = useState<number | null>(null);
 
   useEffect(() => {
     loadTask();
+    loadShortCode();
     setContext(`/tasks/${id}`);
     return () => setContext(null);
   }, [id, setContext]);
@@ -55,6 +59,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       setTask(data);
       setTitle(data.title);
     }
+  };
+
+  const loadShortCode = async () => {
+    const code = await getShortCode('task', id);
+    setShortCode(code);
   };
 
   useRealtimeSync(['tasks'], loadTask);
@@ -95,12 +104,17 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       <div className="flex gap-8">
         {/* Main content */}
         <div className="flex-1 space-y-4">
-          <Input
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            onBlur={handleTitleBlur}
-            className="text-2xl font-bold border-none shadow-none px-0 focus-visible:ring-0 h-auto"
-          />
+          <div className="flex items-center gap-3">
+            {shortCode !== null && (
+              <MentionBadge entityType="task" shortCode={shortCode} />
+            )}
+            <Input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              onBlur={handleTitleBlur}
+              className="text-2xl font-bold border-none shadow-none px-0 focus-visible:ring-0 h-auto flex-1"
+            />
+          </div>
 
           <EditableMarkdown
             value={task.description || ''}

@@ -123,3 +123,15 @@ export interface FileAttachment {
   entityId: string;
   createdAt: string;
 }
+
+// Entity Short Codes (for GitHub-style references like task#123)
+export type MentionEntityType = 'task' | 'project' | 'goal' | 'journal';
+
+export interface EntityShortCode {
+  id: string;
+  userId: string;
+  entityType: MentionEntityType;
+  entityId: string;
+  shortCode: number;
+  createdAt: string;
+}

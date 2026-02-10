@@ -1,4 +1,4 @@
-export const CHANGELOG_VERSION = '2026-02-10';
+export const CHANGELOG_VERSION = '2026-02-11';
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '2026-02-11',
+    title: 'Entity Mentions',
+    items: [
+      'Reference tasks, projects, goals, and journal entries with task#1, project#2, etc.',
+      'Autocomplete suggestions appear as you type mentions in descriptions and chat',
+    ],
+  },
   {
     version: '2026-02-10',
     title: 'Live Sync',

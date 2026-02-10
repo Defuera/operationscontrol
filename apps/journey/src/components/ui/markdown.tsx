@@ -2,13 +2,16 @@
 
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
+import { useMentionsWithPositions } from '@/hooks/useMentions';
+import { MentionLink } from '@/components/mentions/mention-link';
 
 interface MarkdownProps {
   children: string;
   className?: string;
+  enableMentions?: boolean;
 }
 
-export function Markdown({ children, className }: MarkdownProps) {
+export function Markdown({ children, className, enableMentions = true }: MarkdownProps) {
   return (
     <div
       className={cn(
@@ -22,7 +25,53 @@ export function Markdown({ children, className }: MarkdownProps) {
         className
       )}
     >
-      <ReactMarkdown>{children}</ReactMarkdown>
+      {enableMentions ? (
+        <MarkdownWithMentions content={children} />
+      ) : (
+        <ReactMarkdown>{children}</ReactMarkdown>
+      )}
     </div>
+  );
+}
+
+function MarkdownWithMentions({ content }: { content: string }) {
+  const { segments, loading } = useMentionsWithPositions(content);
+
+  // If no mentions or still loading initial, render normally
+  if (segments.length === 1 && segments[0].type === 'text') {
+    return <ReactMarkdown>{content}</ReactMarkdown>;
+  }
+
+  // Pre-process the content to replace mentions with placeholders
+  // Then use a custom component to render mentions
+  return (
+    <ReactMarkdown
+      components={{
+        // Custom text renderer that handles mentions within text nodes
+        text: ({ children }) => {
+          if (typeof children !== 'string') {
+            return <>{children}</>;
+          }
+          return <TextWithMentions text={children} />;
+        },
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
+
+function TextWithMentions({ text }: { text: string }) {
+  const { segments } = useMentionsWithPositions(text);
+
+  return (
+    <>
+      {segments.map((segment, index) => {
+        if (segment.type === 'text') {
+          return <span key={index}>{segment.content}</span>;
+        }
+        return <MentionLink key={index} mention={segment.mention} />;
+      })}
+    </>
   );
 }

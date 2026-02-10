@@ -156,3 +156,15 @@ export const files = pgTable('files', {
   entityId: uuid('entity_id').notNull(),
   createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
 });
+
+// Entity Short Codes (for GitHub-style references like task#123)
+export const entityShortCodes = pgTable('entity_short_codes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  entityType: text('entity_type', {
+    enum: ['task', 'project', 'goal', 'journal']
+  }).notNull(),
+  entityId: uuid('entity_id').notNull(),
+  shortCode: integer('short_code').notNull(),
+  createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+});
