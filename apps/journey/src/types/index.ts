@@ -64,6 +64,7 @@ export interface Goal {
   status: GoalStatus;
   createdAt: string;
   updatedAt: string;
+  shortCode?: number;
 }
 
 // AI Chat Types

@@ -43,7 +43,7 @@ export async function createGoal(input: CreateGoalInput): Promise<Goal> {
   });
 
   revalidatePath('/goals');
-  return goal[0] as Goal;
+  return { ...goal[0], shortCode: nextCode } as Goal;
 }
 
 export async function updateGoal(
@@ -69,6 +69,27 @@ export async function deleteGoal(id: string): Promise<void> {
 export async function getGoals(): Promise<Goal[]> {
   const user = await requireAuth();
 
-  const result = await db.select().from(goals).where(eq(goals.userId, user.id));
+  const result = await db
+    .select({
+      id: goals.id,
+      userId: goals.userId,
+      title: goals.title,
+      description: goals.description,
+      horizon: goals.horizon,
+      status: goals.status,
+      createdAt: goals.createdAt,
+      updatedAt: goals.updatedAt,
+      shortCode: entityShortCodes.shortCode,
+    })
+    .from(goals)
+    .leftJoin(
+      entityShortCodes,
+      and(
+        eq(entityShortCodes.entityId, goals.id),
+        eq(entityShortCodes.entityType, 'goal')
+      )
+    )
+    .where(eq(goals.userId, user.id));
+
   return result as Goal[];
 }

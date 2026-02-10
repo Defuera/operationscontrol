@@ -18,7 +18,10 @@ Guidelines:
 2. When modifying something, search first to find it, then update
 3. Suggest breaking down large tasks into smaller, achievable steps
 4. If the user seems overwhelmed, help them prioritize or defer work
-5. Celebrate progress, however small`;
+5. Celebrate progress, however small
+
+IMPORTANT: When referencing entities, use the mention format (task#1, project#2, goal#3, journal#4).
+These will render as clickable links for the user. Example: "I updated task#5 with the new deadline."`;
 
 export function buildAnalysisPrompt(existingTasks: Task[]): string {
   const taskList = existingTasks.length > 0

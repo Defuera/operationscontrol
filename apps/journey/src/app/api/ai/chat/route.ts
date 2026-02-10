@@ -10,7 +10,7 @@ import {
   createMessage,
   createAction,
 } from '@/actions/ai-chat';
-import { getProjectWithTasks } from '@/actions/projects';
+import { getProjectWithTasksByShortCode } from '@/actions/projects';
 import { getGoals } from '@/actions/goals';
 import { getTasks } from '@/actions/tasks';
 import { getFilesByEntity } from '@/actions/files';
@@ -30,33 +30,43 @@ async function getGoalsContext(): Promise<string | null> {
 }
 
 async function getContextFromPath(path: string): Promise<string | null> {
-  // Parse path like /projects/uuid or /goals/uuid
-  const projectMatch = path.match(/^\/projects\/([a-f0-9-]+)$/i);
+  // Parse path like /projects/1 (short code) or /projects/uuid (legacy)
+  const projectMatch = path.match(/^\/projects\/(\d+|[a-f0-9-]+)$/i);
   if (projectMatch) {
-    const projectId = projectMatch[1];
-    const data = await getProjectWithTasks(projectId);
-    if (data) {
-      const taskList = data.tasks.length > 0
-        ? `\nTasks:\n${data.tasks.map(t => `- "${t.title}" (id: ${t.id}, status: ${t.status})`).join('\n')}`
-        : '\nNo tasks yet.';
+    const idOrCode = projectMatch[1];
+    // Check if it's a short code (number) or UUID
+    const shortCode = /^\d+$/.test(idOrCode) ? parseInt(idOrCode, 10) : null;
 
-      // Get files attached to this project
-      const files = await getFilesByEntity('project', projectId);
-      const fileList = files.length > 0
-        ? `\nFiles attached to project:\n${files.map(f => `- "${f.fileName}" (id: ${f.id}, ${f.mimeType})`).join('\n')}`
-        : '\nNo files attached.';
+    if (shortCode) {
+      const data = await getProjectWithTasksByShortCode(shortCode);
+      if (data) {
+        const taskList = data.tasks.length > 0
+          ? `\nTasks:\n${data.tasks.map(t => `- "${t.title}" (${t.shortCode ? `task#${t.shortCode}` : t.id}, status: ${t.status})`).join('\n')}`
+          : '\nNo tasks yet.';
 
-      return `User is viewing project "${data.project.name}" (id: ${projectId}, type: ${data.project.type}, status: ${data.project.status})${data.project.description ? `\nDescription: ${data.project.description}` : ''}${taskList}${fileList}`;
+        // Get files attached to this project
+        const files = await getFilesByEntity('project', data.project.id);
+        const fileList = files.length > 0
+          ? `\nFiles attached to project:\n${files.map(f => `- "${f.fileName}" (${f.mimeType})`).join('\n')}`
+          : '\nNo files attached.';
+
+        const projectRef = data.project.shortCode ? `project#${data.project.shortCode}` : data.project.id;
+        return `User is viewing project "${data.project.name}" (${projectRef}, type: ${data.project.type}, status: ${data.project.status})${data.project.description ? `\nDescription: ${data.project.description}` : ''}${taskList}${fileList}`;
+      }
     }
   }
 
-  const goalMatch = path.match(/^\/goals\/([a-f0-9-]+)$/i);
+  const goalMatch = path.match(/^\/goals\/(\d+|[a-f0-9-]+)$/i);
   if (goalMatch) {
-    const goalId = goalMatch[1];
+    const idOrCode = goalMatch[1];
     const goals = await getGoals();
-    const goal = goals.find(g => g.id === goalId);
+    // Find by short code or ID
+    const goal = /^\d+$/.test(idOrCode)
+      ? goals.find(g => g.shortCode === parseInt(idOrCode, 10))
+      : goals.find(g => g.id === idOrCode);
     if (goal) {
-      return `User is viewing goal "${goal.title}" (id: ${goalId}, horizon: ${goal.horizon}, status: ${goal.status})${goal.description ? `\nDescription: ${goal.description}` : ''}`;
+      const goalRef = goal.shortCode ? `goal#${goal.shortCode}` : goal.id;
+      return `User is viewing goal "${goal.title}" (${goalRef}, horizon: ${goal.horizon}, status: ${goal.status})${goal.description ? `\nDescription: ${goal.description}` : ''}`;
     }
   }
 
