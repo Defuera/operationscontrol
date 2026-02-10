@@ -9,6 +9,7 @@ interface ChatMessagesProps {
   isLoading?: boolean;
   onConfirmAction: (actionId: string) => Promise<void>;
   onRejectAction: (actionId: string) => Promise<void>;
+  showDebug?: boolean;
 }
 
 export function ChatMessages({
@@ -16,6 +17,7 @@ export function ChatMessages({
   isLoading,
   onConfirmAction,
   onRejectAction,
+  showDebug = false,
 }: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,6 +43,7 @@ export function ChatMessages({
           message={message}
           onConfirmAction={onConfirmAction}
           onRejectAction={onRejectAction}
+          showDebug={showDebug}
         />
       ))}
       {isLoading && (

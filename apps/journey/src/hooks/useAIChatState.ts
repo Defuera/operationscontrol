@@ -126,6 +126,9 @@ export function useAIChatState(): AIChatContextValue {
         role: 'user',
         content: message,
         toolCalls: null,
+        model: null,
+        promptTokens: null,
+        completionTokens: null,
         createdAt: new Date().toISOString(),
       };
 
@@ -160,6 +163,9 @@ export function useAIChatState(): AIChatContextValue {
         role: 'assistant',
         content: data.response,
         toolCalls: data.proposedActions ? JSON.stringify(data.proposedActions) : null,
+        model: data.model || null,
+        promptTokens: data.promptTokens || null,
+        completionTokens: data.completionTokens || null,
         createdAt: new Date().toISOString(),
       };
 

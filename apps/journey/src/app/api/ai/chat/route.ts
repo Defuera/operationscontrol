@@ -13,6 +13,7 @@ import {
 import { getProjectWithTasks } from '@/actions/projects';
 import { getGoals } from '@/actions/goals';
 import { getTasks } from '@/actions/tasks';
+import { getFilesByEntity } from '@/actions/files';
 import { createClient } from '@/lib/supabase/server';
 import type { AIEntityType, AIActionType } from '@/types';
 
@@ -32,21 +33,30 @@ async function getContextFromPath(path: string): Promise<string | null> {
   // Parse path like /projects/uuid or /goals/uuid
   const projectMatch = path.match(/^\/projects\/([a-f0-9-]+)$/i);
   if (projectMatch) {
-    const data = await getProjectWithTasks(projectMatch[1]);
+    const projectId = projectMatch[1];
+    const data = await getProjectWithTasks(projectId);
     if (data) {
       const taskList = data.tasks.length > 0
-        ? `\nTasks: ${data.tasks.map(t => `${t.title} (${t.status})`).join(', ')}`
-        : '';
-      return `User is viewing project "${data.project.name}" (${data.project.type}, ${data.project.status})${data.project.description ? `\nDescription: ${data.project.description}` : ''}${taskList}`;
+        ? `\nTasks:\n${data.tasks.map(t => `- "${t.title}" (id: ${t.id}, status: ${t.status})`).join('\n')}`
+        : '\nNo tasks yet.';
+
+      // Get files attached to this project
+      const files = await getFilesByEntity('project', projectId);
+      const fileList = files.length > 0
+        ? `\nFiles attached to project:\n${files.map(f => `- "${f.fileName}" (id: ${f.id}, ${f.mimeType})`).join('\n')}`
+        : '\nNo files attached.';
+
+      return `User is viewing project "${data.project.name}" (id: ${projectId}, type: ${data.project.type}, status: ${data.project.status})${data.project.description ? `\nDescription: ${data.project.description}` : ''}${taskList}${fileList}`;
     }
   }
 
   const goalMatch = path.match(/^\/goals\/([a-f0-9-]+)$/i);
   if (goalMatch) {
+    const goalId = goalMatch[1];
     const goals = await getGoals();
-    const goal = goals.find(g => g.id === goalMatch[1]);
+    const goal = goals.find(g => g.id === goalId);
     if (goal) {
-      return `User is viewing goal "${goal.title}" (${goal.horizon}, ${goal.status})${goal.description ? `\nDescription: ${goal.description}` : ''}`;
+      return `User is viewing goal "${goal.title}" (id: ${goalId}, horizon: ${goal.horizon}, status: ${goal.status})${goal.description ? `\nDescription: ${goal.description}` : ''}`;
     }
   }
 
@@ -268,6 +278,9 @@ export async function POST(request: Request) {
       messageId: savedMessage.id,
       response: responseContent,
       proposedActions,
+      model,
+      promptTokens: totalPromptTokens,
+      completionTokens: totalCompletionTokens,
     });
   } catch (error) {
     console.error('AI chat error:', error);

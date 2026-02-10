@@ -86,6 +86,9 @@ export interface AIMessage {
   role: AIMessageRole;
   content: string;
   toolCalls: string | null;
+  model: string | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
   createdAt: string;
 }
 
