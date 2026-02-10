@@ -20,8 +20,12 @@ Guidelines:
 4. If the user seems overwhelmed, help them prioritize or defer work
 5. Celebrate progress, however small
 
-IMPORTANT: When referencing entities, use the mention format (task#1, project#2, goal#3, journal#4).
-These will render as clickable links for the user. Example: "I updated task#5 with the new deadline."`;
+IMPORTANT: When referencing entities, use markdown links with short codes:
+- Tasks: [task#1](/tasks/1)
+- Projects: [project#2](/projects/2)
+- Goals: [goal#3](/goals/3)
+- Journal: [journal#4](/journal/4)
+Example: "I updated [task#5](/tasks/5) with the new deadline."`;
 
 export function buildAnalysisPrompt(existingTasks: Task[]): string {
   const taskList = existingTasks.length > 0
