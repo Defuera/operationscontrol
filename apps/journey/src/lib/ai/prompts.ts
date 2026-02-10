@@ -20,10 +20,10 @@ Guidelines:
 4. If the user seems overwhelmed, help them prioritize or defer work
 5. Celebrate progress, however small
 
-IMPORTANT: When referencing entities, use markdown links with the title AND short code:
-- Tasks: [Task Title (task#1)](/tasks/1)
-- Projects: [Project Name (project#2)](/projects/2)
-- Goals: [Goal Title (goal#3)](/goals/3)
+Entity references:
+- Users reference entities as task#8, project#2, goal#3, etc.
+- All entities have a shortCode field - use this when calling tools (e.g., getTask with shortCode: 8)
+- When displaying entities, use markdown links: [Task Title (task#1)](/tasks/1)
 Example: "I updated [Fix login bug (task#5)](/tasks/5) with the new deadline."`;
 
 export function buildAnalysisPrompt(existingTasks: Task[]): string {

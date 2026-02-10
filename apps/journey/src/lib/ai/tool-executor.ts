@@ -1,7 +1,26 @@
 import { db } from '@/db';
-import { tasks, projects, goals, journalEntries, files } from '@/db/schema';
+import { tasks, projects, goals, journalEntries, files, entityShortCodes } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import type { Task, Project, Goal, JournalEntry, FileAttachment, FileEntityType } from '@/types';
+import type { Task, Project, Goal, JournalEntry, FileAttachment, FileEntityType, MentionEntityType } from '@/types';
+
+// Resolve a short code to an entity ID
+async function resolveShortCode(
+  entityType: MentionEntityType,
+  shortCode: number,
+  userId: string
+): Promise<string | null> {
+  const result = await db
+    .select({ entityId: entityShortCodes.entityId })
+    .from(entityShortCodes)
+    .where(
+      and(
+        eq(entityShortCodes.userId, userId),
+        eq(entityShortCodes.entityType, entityType),
+        eq(entityShortCodes.shortCode, shortCode)
+      )
+    );
+  return result[0]?.entityId || null;
+}
 
 export interface ToolResult {
   success: boolean;
@@ -13,10 +32,36 @@ export async function executeReadTool(name: string, args: Record<string, unknown
   try {
     switch (name) {
       case 'searchTasks': {
-        // Build query with filters
-        let allTasks = userId
-          ? await db.select().from(tasks).where(eq(tasks.userId, userId))
+        // Build query with filters and join short codes
+        const results = userId
+          ? await db
+              .select({
+                id: tasks.id,
+                userId: tasks.userId,
+                title: tasks.title,
+                description: tasks.description,
+                status: tasks.status,
+                domain: tasks.domain,
+                priority: tasks.priority,
+                scheduledFor: tasks.scheduledFor,
+                boardScope: tasks.boardScope,
+                projectId: tasks.projectId,
+                createdAt: tasks.createdAt,
+                updatedAt: tasks.updatedAt,
+                shortCode: entityShortCodes.shortCode,
+              })
+              .from(tasks)
+              .leftJoin(
+                entityShortCodes,
+                and(
+                  eq(entityShortCodes.entityId, tasks.id),
+                  eq(entityShortCodes.entityType, 'task')
+                )
+              )
+              .where(eq(tasks.userId, userId))
           : await db.select().from(tasks);
+
+        let allTasks = results as Task[];
 
         if (args.status) {
           allTasks = allTasks.filter(t => t.status === args.status);
@@ -36,24 +81,54 @@ export async function executeReadTool(name: string, args: Record<string, unknown
           );
         }
 
-        return { success: true, data: allTasks as Task[] };
+        return { success: true, data: allTasks };
       }
 
       case 'getTask': {
-        const conditions = userId
-          ? and(eq(tasks.id, args.taskId as string), eq(tasks.userId, userId))
-          : eq(tasks.id, args.taskId as string);
-        const result = await db.select().from(tasks).where(conditions);
-        if (result.length === 0) {
-          return { success: false, error: 'Task not found' };
+        if (!userId) {
+          return { success: false, error: 'User ID required for short code lookup' };
         }
-        return { success: true, data: result[0] as Task };
+        const shortCode = args.shortCode as number;
+        const entityId = await resolveShortCode('task', shortCode, userId);
+        if (!entityId) {
+          return { success: false, error: `Task task#${shortCode} not found` };
+        }
+        const result = await db.select().from(tasks).where(
+          and(eq(tasks.id, entityId), eq(tasks.userId, userId))
+        );
+        if (result.length === 0) {
+          return { success: false, error: `Task task#${shortCode} not found` };
+        }
+        return { success: true, data: { ...result[0], shortCode } as Task };
       }
 
       case 'searchProjects': {
-        let allProjects = userId
-          ? await db.select().from(projects).where(eq(projects.userId, userId))
+        const results = userId
+          ? await db
+              .select({
+                id: projects.id,
+                userId: projects.userId,
+                name: projects.name,
+                description: projects.description,
+                type: projects.type,
+                status: projects.status,
+                goals: projects.goals,
+                createdAt: projects.createdAt,
+                updatedAt: projects.updatedAt,
+                shortCode: entityShortCodes.shortCode,
+              })
+              .from(projects)
+              .leftJoin(
+                entityShortCodes,
+                and(
+                  eq(entityShortCodes.entityId, projects.id),
+                  eq(entityShortCodes.entityType, 'project')
+                )
+              )
+              .where(eq(projects.userId, userId))
           : await db.select().from(projects);
+
+        let allProjects = results as Project[];
 
         if (args.type) {
           allProjects = allProjects.filter(p => p.type === args.type);
@@ -68,34 +143,62 @@ export async function executeReadTool(name: string, args: Record<string, unknown
           );
         }
 
-        return { success: true, data: allProjects as Project[] };
+        return { success: true, data: allProjects };
       }
 
       case 'getProject': {
-        const conditions = userId
-          ? and(eq(projects.id, args.projectId as string), eq(projects.userId, userId))
-          : eq(projects.id, args.projectId as string);
-        const project = await db.select().from(projects).where(conditions);
-        if (project.length === 0) {
-          return { success: false, error: 'Project not found' };
+        if (!userId) {
+          return { success: false, error: 'User ID required for short code lookup' };
         }
-        const taskConditions = userId
-          ? and(eq(tasks.projectId, args.projectId as string), eq(tasks.userId, userId))
-          : eq(tasks.projectId, args.projectId as string);
-        const projectTasks = await db.select().from(tasks).where(taskConditions);
+        const shortCode = args.shortCode as number;
+        const entityId = await resolveShortCode('project', shortCode, userId);
+        if (!entityId) {
+          return { success: false, error: `Project project#${shortCode} not found` };
+        }
+        const project = await db.select().from(projects).where(
+          and(eq(projects.id, entityId), eq(projects.userId, userId))
+        );
+        if (project.length === 0) {
+          return { success: false, error: `Project project#${shortCode} not found` };
+        }
+        const projectTasks = await db.select().from(tasks).where(
+          and(eq(tasks.projectId, entityId), eq(tasks.userId, userId))
+        );
         return {
           success: true,
           data: {
-            project: project[0] as Project,
+            project: { ...project[0], shortCode } as Project,
             tasks: projectTasks as Task[],
           },
         };
       }
 
       case 'searchGoals': {
-        let allGoals = userId
-          ? await db.select().from(goals).where(eq(goals.userId, userId))
+        const results = userId
+          ? await db
+              .select({
+                id: goals.id,
+                userId: goals.userId,
+                title: goals.title,
+                description: goals.description,
+                horizon: goals.horizon,
+                status: goals.status,
+                createdAt: goals.createdAt,
+                updatedAt: goals.updatedAt,
+                shortCode: entityShortCodes.shortCode,
+              })
+              .from(goals)
+              .leftJoin(
+                entityShortCodes,
+                and(
+                  eq(entityShortCodes.entityId, goals.id),
+                  eq(entityShortCodes.entityType, 'goal')
+                )
+              )
+              .where(eq(goals.userId, userId))
           : await db.select().from(goals);
+
+        let allGoals = results as Goal[];
 
         if (args.horizon) {
           allGoals = allGoals.filter(g => g.horizon === args.horizon);
@@ -110,30 +213,55 @@ export async function executeReadTool(name: string, args: Record<string, unknown
           );
         }
 
-        return { success: true, data: allGoals as Goal[] };
+        return { success: true, data: allGoals };
       }
 
       case 'getGoal': {
-        const conditions = userId
-          ? and(eq(goals.id, args.goalId as string), eq(goals.userId, userId))
-          : eq(goals.id, args.goalId as string);
-        const result = await db.select().from(goals).where(conditions);
-        if (result.length === 0) {
-          return { success: false, error: 'Goal not found' };
+        if (!userId) {
+          return { success: false, error: 'User ID required for short code lookup' };
         }
-        return { success: true, data: result[0] as Goal };
+        const shortCode = args.shortCode as number;
+        const entityId = await resolveShortCode('goal', shortCode, userId);
+        if (!entityId) {
+          return { success: false, error: `Goal goal#${shortCode} not found` };
+        }
+        const result = await db.select().from(goals).where(
+          and(eq(goals.id, entityId), eq(goals.userId, userId))
+        );
+        if (result.length === 0) {
+          return { success: false, error: `Goal goal#${shortCode} not found` };
+        }
+        return { success: true, data: { ...result[0], shortCode } as Goal };
       }
 
       case 'searchJournalEntries': {
         const limit = (args.limit as number) || 10;
-        let entries = userId
-          ? await db.select().from(journalEntries)
+        const results = userId
+          ? await db
+              .select({
+                id: journalEntries.id,
+                userId: journalEntries.userId,
+                content: journalEntries.content,
+                aiAnalysis: journalEntries.aiAnalysis,
+                createdAt: journalEntries.createdAt,
+                shortCode: entityShortCodes.shortCode,
+              })
+              .from(journalEntries)
+              .leftJoin(
+                entityShortCodes,
+                and(
+                  eq(entityShortCodes.entityId, journalEntries.id),
+                  eq(entityShortCodes.entityType, 'journal')
+                )
+              )
               .where(eq(journalEntries.userId, userId))
               .orderBy(desc(journalEntries.createdAt))
               .limit(limit)
           : await db.select().from(journalEntries)
               .orderBy(desc(journalEntries.createdAt))
               .limit(limit);
+
+        let entries = results as (JournalEntry & { shortCode?: number })[];
 
         if (args.query) {
           const searchTerm = (args.query as string).toLowerCase();
@@ -142,16 +270,23 @@ export async function executeReadTool(name: string, args: Record<string, unknown
           );
         }
 
-        return { success: true, data: entries as JournalEntry[] };
+        return { success: true, data: entries };
       }
 
       case 'getJournalEntry': {
-        const conditions = userId
-          ? and(eq(journalEntries.id, args.entryId as string), eq(journalEntries.userId, userId))
-          : eq(journalEntries.id, args.entryId as string);
-        const result = await db.select().from(journalEntries).where(conditions);
+        if (!userId) {
+          return { success: false, error: 'User ID required for short code lookup' };
+        }
+        const shortCode = args.shortCode as number;
+        const entityId = await resolveShortCode('journal', shortCode, userId);
+        if (!entityId) {
+          return { success: false, error: `Journal entry journal#${shortCode} not found` };
+        }
+        const result = await db.select().from(journalEntries).where(
+          and(eq(journalEntries.id, entityId), eq(journalEntries.userId, userId))
+        );
         if (result.length === 0) {
-          return { success: false, error: 'Journal entry not found' };
+          return { success: false, error: `Journal entry journal#${shortCode} not found` };
         }
         return { success: true, data: result[0] as JournalEntry };
       }
@@ -199,47 +334,47 @@ export function describeWriteAction(
       return `Create task: "${args.title}"`;
     case 'updateTask': {
       const changes = Object.entries(args)
-        .filter(([k]) => k !== 'taskId')
+        .filter(([k]) => k !== 'shortCode')
         .map(([k, v]) => `${k}: ${v}`)
         .join(', ');
-      return `Update task: ${changes}`;
+      return `Update task#${args.shortCode}: ${changes}`;
     }
     case 'deleteTask':
-      return `Delete task`;
+      return `Delete task#${args.shortCode}`;
 
     // Projects
     case 'createProject':
       return `Create project: "${args.name}"`;
     case 'updateProject': {
       const changes = Object.entries(args)
-        .filter(([k]) => k !== 'projectId')
+        .filter(([k]) => k !== 'shortCode')
         .map(([k, v]) => `${k}: ${v}`)
         .join(', ');
-      return `Update project: ${changes}`;
+      return `Update project#${args.shortCode}: ${changes}`;
     }
     case 'deleteProject':
-      return `Delete project`;
+      return `Delete project#${args.shortCode}`;
 
     // Goals
     case 'createGoal':
       return `Create ${args.horizon} goal: "${args.title}"`;
     case 'updateGoal': {
       const changes = Object.entries(args)
-        .filter(([k]) => k !== 'goalId')
+        .filter(([k]) => k !== 'shortCode')
         .map(([k, v]) => `${k}: ${v}`)
         .join(', ');
-      return `Update goal: ${changes}`;
+      return `Update goal#${args.shortCode}: ${changes}`;
     }
     case 'deleteGoal':
-      return `Delete goal`;
+      return `Delete goal#${args.shortCode}`;
 
     // Journal
     case 'createJournalEntry':
       return `Create journal entry`;
     case 'updateJournalEntry':
-      return `Update journal entry`;
+      return `Update journal#${args.shortCode}`;
     case 'deleteJournalEntry':
-      return `Delete journal entry`;
+      return `Delete journal#${args.shortCode}`;
 
     // Files
     case 'deleteFile':

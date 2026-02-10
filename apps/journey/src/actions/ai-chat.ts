@@ -132,7 +132,7 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
         .where(and(eq(tasks.id, action.entityId), eq(tasks.userId, userId)));
       if (!existing) throw new Error('Task not found');
       snapshotBefore = existing;
-      const { taskId: _, ...taskUpdates } = payload;
+      const { shortCode: _, ...taskUpdates } = payload;
       await db.update(tasks)
         .set({ ...taskUpdates, updatedAt: now })
         .where(and(eq(tasks.id, action.entityId), eq(tasks.userId, userId)));
@@ -162,7 +162,7 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
         .where(and(eq(projects.id, action.entityId), eq(projects.userId, userId)));
       if (!existing) throw new Error('Project not found');
       snapshotBefore = existing;
-      const { projectId: _, ...projectUpdates } = payload;
+      const { shortCode: _sc, ...projectUpdates } = payload;
       await db.update(projects)
         .set({ ...projectUpdates, updatedAt: now })
         .where(and(eq(projects.id, action.entityId), eq(projects.userId, userId)));
@@ -194,7 +194,7 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
         .where(and(eq(goals.id, action.entityId), eq(goals.userId, userId)));
       if (!existing) throw new Error('Goal not found');
       snapshotBefore = existing;
-      const { goalId: _, ...goalUpdates } = payload;
+      const { shortCode: _sc2, ...goalUpdates } = payload;
       await db.update(goals)
         .set({ ...goalUpdates, updatedAt: now })
         .where(and(eq(goals.id, action.entityId), eq(goals.userId, userId)));
@@ -220,7 +220,7 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
         .where(and(eq(journalEntries.id, action.entityId), eq(journalEntries.userId, userId)));
       if (!existing) throw new Error('Journal entry not found');
       snapshotBefore = existing;
-      const { entryId: _, ...entryUpdates } = payload;
+      const { shortCode: _sc3, ...entryUpdates } = payload;
       await db.update(journalEntries)
         .set(entryUpdates)
         .where(and(eq(journalEntries.id, action.entityId), eq(journalEntries.userId, userId)));

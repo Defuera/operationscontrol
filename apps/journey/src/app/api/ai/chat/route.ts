@@ -14,8 +14,9 @@ import { getProjectWithTasksByShortCode } from '@/actions/projects';
 import { getGoals } from '@/actions/goals';
 import { getTasks } from '@/actions/tasks';
 import { getFilesByEntity } from '@/actions/files';
+import { getEntityIdByShortCode } from '@/actions/mentions';
 import { createClient } from '@/lib/supabase/server';
-import type { AIEntityType, AIActionType } from '@/types';
+import type { AIEntityType, AIActionType, MentionEntityType } from '@/types';
 
 const openai = new OpenAI();
 
@@ -195,7 +196,19 @@ export async function POST(request: Request) {
           // Queue write action data for later creation (after message is saved)
           const entityType = getEntityType(toolName);
           const actionType = getActionType(toolName);
-          const entityId = args.taskId || args.projectId || args.goalId || args.fileId || args.entryId;
+
+          // Resolve short code to entity ID for update/delete actions
+          let entityId: string | undefined;
+          if (args.shortCode && actionType !== 'create') {
+            const resolved = await getEntityIdByShortCode(
+              entityType as MentionEntityType,
+              args.shortCode as number
+            );
+            entityId = resolved || undefined;
+          } else {
+            // Fallback for file deletion which still uses fileId
+            entityId = args.fileId as string | undefined;
+          }
 
           pendingActionData.push({
             actionType,

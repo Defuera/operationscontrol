@@ -36,16 +36,16 @@ export const readTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'getTask',
-      description: 'Get a specific task by ID',
+      description: 'Get a specific task by its short code (e.g., task#8 → use shortCode: 8)',
       parameters: {
         type: 'object',
         properties: {
-          taskId: {
-            type: 'string',
-            description: 'The task ID',
+          shortCode: {
+            type: 'number',
+            description: 'The task short code number (e.g., 8 for task#8)',
           },
         },
-        required: ['taskId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -79,16 +79,16 @@ export const readTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'getProject',
-      description: 'Get a specific project and its tasks by ID',
+      description: 'Get a specific project and its tasks by short code (e.g., project#2 → use shortCode: 2)',
       parameters: {
         type: 'object',
         properties: {
-          projectId: {
-            type: 'string',
-            description: 'The project ID',
+          shortCode: {
+            type: 'number',
+            description: 'The project short code number (e.g., 2 for project#2)',
           },
         },
-        required: ['projectId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -121,16 +121,16 @@ export const readTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'getGoal',
-      description: 'Get a specific goal by ID',
+      description: 'Get a specific goal by short code (e.g., goal#3 → use shortCode: 3)',
       parameters: {
         type: 'object',
         properties: {
-          goalId: {
-            type: 'string',
-            description: 'The goal ID',
+          shortCode: {
+            type: 'number',
+            description: 'The goal short code number (e.g., 3 for goal#3)',
           },
         },
-        required: ['goalId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -158,16 +158,16 @@ export const readTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'getJournalEntry',
-      description: 'Get a specific journal entry by ID',
+      description: 'Get a specific journal entry by short code (e.g., journal#5 → use shortCode: 5)',
       parameters: {
         type: 'object',
         properties: {
-          entryId: {
-            type: 'string',
-            description: 'The journal entry ID',
+          shortCode: {
+            type: 'number',
+            description: 'The journal entry short code number (e.g., 5 for journal#5)',
           },
         },
-        required: ['entryId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -218,13 +218,13 @@ export const writeTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'updateTask',
-      description: 'Update an existing task. Use this to change status, title, description, priority, etc.',
+      description: 'Update an existing task by short code. Use this to change status, title, description, priority, etc.',
       parameters: {
         type: 'object',
         properties: {
-          taskId: {
-            type: 'string',
-            description: 'The ID of the task to update',
+          shortCode: {
+            type: 'number',
+            description: 'The task short code number (e.g., 8 for task#8)',
           },
           title: {
             type: 'string',
@@ -249,7 +249,7 @@ export const writeTools: ChatCompletionTool[] = [
             description: 'Priority level (higher = more important)',
           },
         },
-        required: ['taskId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -296,16 +296,16 @@ export const writeTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'deleteTask',
-      description: 'Delete a task permanently',
+      description: 'Delete a task permanently by short code',
       parameters: {
         type: 'object',
         properties: {
-          taskId: {
-            type: 'string',
-            description: 'The ID of the task to delete',
+          shortCode: {
+            type: 'number',
+            description: 'The task short code number (e.g., 8 for task#8)',
           },
         },
-        required: ['taskId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -343,13 +343,13 @@ export const writeTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'updateProject',
-      description: 'Update a project name, description, goals, or status',
+      description: 'Update a project by short code. Can change name, description, goals, or status',
       parameters: {
         type: 'object',
         properties: {
-          projectId: {
-            type: 'string',
-            description: 'The ID of the project to update',
+          shortCode: {
+            type: 'number',
+            description: 'The project short code number (e.g., 2 for project#2)',
           },
           name: {
             type: 'string',
@@ -369,7 +369,7 @@ export const writeTools: ChatCompletionTool[] = [
             description: 'New status for the project',
           },
         },
-        required: ['projectId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -377,16 +377,16 @@ export const writeTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'deleteProject',
-      description: 'Delete a project permanently',
+      description: 'Delete a project permanently by short code',
       parameters: {
         type: 'object',
         properties: {
-          projectId: {
-            type: 'string',
-            description: 'The ID of the project to delete',
+          shortCode: {
+            type: 'number',
+            description: 'The project short code number (e.g., 2 for project#2)',
           },
         },
-        required: ['projectId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -420,13 +420,13 @@ export const writeTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'updateGoal',
-      description: 'Update a goal',
+      description: 'Update a goal by short code',
       parameters: {
         type: 'object',
         properties: {
-          goalId: {
-            type: 'string',
-            description: 'The ID of the goal to update',
+          shortCode: {
+            type: 'number',
+            description: 'The goal short code number (e.g., 3 for goal#3)',
           },
           title: {
             type: 'string',
@@ -447,7 +447,7 @@ export const writeTools: ChatCompletionTool[] = [
             description: 'New status for the goal',
           },
         },
-        required: ['goalId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -455,16 +455,16 @@ export const writeTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'deleteGoal',
-      description: 'Delete a goal permanently',
+      description: 'Delete a goal permanently by short code',
       parameters: {
         type: 'object',
         properties: {
-          goalId: {
-            type: 'string',
-            description: 'The ID of the goal to delete',
+          shortCode: {
+            type: 'number',
+            description: 'The goal short code number (e.g., 3 for goal#3)',
           },
         },
-        required: ['goalId'],
+        required: ['shortCode'],
       },
     },
   },
@@ -489,20 +489,20 @@ export const writeTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'updateJournalEntry',
-      description: 'Update a journal entry',
+      description: 'Update a journal entry by short code',
       parameters: {
         type: 'object',
         properties: {
-          entryId: {
-            type: 'string',
-            description: 'The ID of the journal entry to update',
+          shortCode: {
+            type: 'number',
+            description: 'The journal entry short code number (e.g., 5 for journal#5)',
           },
           content: {
             type: 'string',
             description: 'New content for the journal entry',
           },
         },
-        required: ['entryId', 'content'],
+        required: ['shortCode', 'content'],
       },
     },
   },
@@ -510,16 +510,16 @@ export const writeTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'deleteJournalEntry',
-      description: 'Delete a journal entry permanently',
+      description: 'Delete a journal entry permanently by short code',
       parameters: {
         type: 'object',
         properties: {
-          entryId: {
-            type: 'string',
-            description: 'The ID of the journal entry to delete',
+          shortCode: {
+            type: 'number',
+            description: 'The journal entry short code number (e.g., 5 for journal#5)',
           },
         },
-        required: ['entryId'],
+        required: ['shortCode'],
       },
     },
   },
