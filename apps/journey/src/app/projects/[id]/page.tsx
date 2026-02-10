@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { FileUploadDialog, FileList } from '@/components/files';
 import { getFilesByEntity } from '@/actions/files';
-import type { Project, Task, ProjectType, ProjectStatus, TaskDomain, BoardScope, FileAttachment } from '@/types';
+import type { Project, Task, ProjectType, ProjectStatus, TaskStatus, TaskDomain, BoardScope, FileAttachment } from '@/types';
 
 function parseGoals(goals: string): string[] {
   return goals
@@ -91,12 +91,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     description: string;
     domain?: TaskDomain;
     priority: number;
+    status?: TaskStatus;
+    scheduledFor?: string | null;
   }) => {
     if (editingTask) {
       await updateTask(editingTask.id, data);
       setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...data } : t));
     } else {
-      const newTask = await createTask({ ...data, projectId: id });
+      const { status: _s, scheduledFor: _sf, ...createData } = data;
+      const newTask = await createTask({ ...createData, projectId: id });
       setTasks(prev => [...prev, newTask]);
     }
     setTaskDialogOpen(false);

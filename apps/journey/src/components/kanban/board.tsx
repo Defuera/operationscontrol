@@ -129,6 +129,8 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
     domain?: TaskDomain;
     priority: number;
     boardScope?: BoardScope;
+    status?: TaskStatus;
+    scheduledFor?: string | null;
   }) => {
     if (editingTask) {
       await updateTask(editingTask.id, data);
@@ -136,9 +138,10 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
         prev.map(t => (t.id === editingTask.id ? { ...t, ...data } : t))
       );
     } else {
+      const { status: _s, scheduledFor: _sf, ...createData } = data;
       const newTask = await createTask({
-        ...data,
-        boardScope: data.boardScope || getDefaultBoardScope(),
+        ...createData,
+        boardScope: createData.boardScope || getDefaultBoardScope(),
       });
       setTasks(prev => [...prev, newTask]);
     }

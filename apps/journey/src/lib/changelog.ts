@@ -1,4 +1,4 @@
-export const CHANGELOG_VERSION = '2026-02-09';
+export const CHANGELOG_VERSION = '2026-02-10';
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '2026-02-10',
+    title: 'Redesigned Task Dialog',
+    items: [
+      'Two-panel layout: content on the left, properties on the right',
+      'Edit task status, scheduled date, and all properties in one view',
+      'Responsive design — panels stack vertically on mobile',
+    ],
+  },
   {
     version: '2026-02-09',
     title: 'File Attachments',
