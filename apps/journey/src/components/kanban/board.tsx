@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import {
   DndContext,
   DragEndEvent,
@@ -19,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { createTask, updateTask, updateTaskStatus, deleteTask } from '@/actions/tasks';
 import type { Task, TaskStatus, TaskDomain, BoardScope, Project } from '@/types';
 
+
 const statuses: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'done'];
 const domains: (TaskDomain | 'all')[] = ['all', 'work', 'side', 'chores', 'life'];
 
@@ -28,6 +31,8 @@ interface BoardProps {
 }
 
 export function Board({ initialTasks, projects = [] }: BoardProps) {
+  const router = useRouter();
+  const isMobile = useIsMobile();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const projectMap = new Map(projects.map(p => [p.id, p]));
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -95,6 +100,10 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
   };
 
   const handleTaskClick = (task: Task) => {
+    if (isMobile) {
+      router.push(`/tasks/${task.id}`);
+      return;
+    }
     setEditingTask(task);
     setDialogOpen(true);
   };
@@ -129,8 +138,6 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
     domain?: TaskDomain;
     priority: number;
     boardScope?: BoardScope;
-    status?: TaskStatus;
-    scheduledFor?: string | null;
   }) => {
     if (editingTask) {
       await updateTask(editingTask.id, data);
@@ -138,10 +145,9 @@ export function Board({ initialTasks, projects = [] }: BoardProps) {
         prev.map(t => (t.id === editingTask.id ? { ...t, ...data } : t))
       );
     } else {
-      const { status: _s, scheduledFor: _sf, ...createData } = data;
       const newTask = await createTask({
-        ...createData,
-        boardScope: createData.boardScope || getDefaultBoardScope(),
+        ...data,
+        boardScope: data.boardScope || getDefaultBoardScope(),
       });
       setTasks(prev => [...prev, newTask]);
     }

@@ -42,7 +42,7 @@ MUST follow these guides when working on this project:
 
 When making user-facing changes, update the changelog at `apps/journey/src/lib/changelog.ts`:
 1. Bump `CHANGELOG_VERSION` to today's date (YYYY-MM-DD)
-2. Add a new entry at the top of the `changelog` array with the new version, title, and items
+2. Add a new entry at the top of the `changelog` array — short user-friendly items (no technical details), 2-3 max
 
 ## Key Principles
 

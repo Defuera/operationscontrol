@@ -93,6 +93,16 @@ export async function getTasks(): Promise<Task[]> {
   return result as Task[];
 }
 
+export async function getTask(id: string): Promise<Task | null> {
+  const user = await requireAuth();
+
+  const result = await db.select()
+    .from(tasks)
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+
+  return (result[0] as Task) || null;
+}
+
 export async function getBoardTasks(): Promise<Task[]> {
   const user = await requireAuth();
 

@@ -9,11 +9,10 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     version: '2026-02-10',
-    title: 'Redesigned Task Dialog',
+    title: 'Task Detail Page',
     items: [
-      'Two-panel layout: content on the left, properties on the right',
-      'Edit task status, scheduled date, and all properties in one view',
-      'Responsive design — panels stack vertically on mobile',
+      'Tap a task to open its full detail page with all properties and files',
+      'Lighter quick-edit dialog on desktop',
     ],
   },
   {

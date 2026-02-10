@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ProjectDialog } from '@/components/projects';
 import { TaskDialog } from '@/components/kanban';
 import { useAIContext } from '@/components/ai-chat';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { EditableMarkdown } from '@/components/ui/editable-markdown';
 import { getProjectWithTasks, updateProject, deleteProject } from '@/actions/projects';
 import { createTask, updateTask, updateTaskStatus, deleteTask, addTaskToBoard, removeTaskFromBoard } from '@/actions/tasks';
@@ -21,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { FileUploadDialog, FileList } from '@/components/files';
 import { getFilesByEntity } from '@/actions/files';
-import type { Project, Task, ProjectType, ProjectStatus, TaskStatus, TaskDomain, BoardScope, FileAttachment } from '@/types';
+import type { Project, Task, ProjectType, ProjectStatus, TaskDomain, BoardScope, FileAttachment } from '@/types';
 
 function parseGoals(goals: string): string[] {
   return goals
@@ -41,6 +42,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const { setContext } = useAIContext();
+  const isMobile = useIsMobile();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [files, setFiles] = useState<FileAttachment[]>([]);
@@ -91,15 +93,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     description: string;
     domain?: TaskDomain;
     priority: number;
-    status?: TaskStatus;
-    scheduledFor?: string | null;
   }) => {
     if (editingTask) {
       await updateTask(editingTask.id, data);
       setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...data } : t));
     } else {
-      const { status: _s, scheduledFor: _sf, ...createData } = data;
-      const newTask = await createTask({ ...createData, projectId: id });
+      const newTask = await createTask({ ...data, projectId: id });
       setTasks(prev => [...prev, newTask]);
     }
     setTaskDialogOpen(false);
@@ -226,7 +225,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 >
                   <div
                     className="cursor-pointer"
-                    onClick={() => { setEditingTask(task); setTaskDialogOpen(true); }}
+                    onClick={() => {
+                      if (isMobile) {
+                        router.push(`/tasks/${task.id}`);
+                        return;
+                      }
+                      setEditingTask(task);
+                      setTaskDialogOpen(true);
+                    }}
                   >
                     <p className="font-medium text-sm mb-1">{task.title}</p>
                     <div className="flex items-center gap-1 flex-wrap">
