@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,8 +20,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FileUploadDialog, FileList } from '@/components/files';
-import { getFilesByEntity, deleteFile } from '@/actions/files';
+import { getFilesByEntity } from '@/actions/files';
 import type { Project, Task, ProjectType, ProjectStatus, TaskDomain, BoardScope, FileAttachment } from '@/types';
+
+function parseGoals(goals: string): string[] {
+  return goals
+    .split(/[-•]/)
+    .map(g => g.trim())
+    .filter(g => g.length > 0);
+}
 
 const statusColors: Record<string, string> = {
   backlog: 'bg-gray-100 text-gray-800',
@@ -124,46 +132,77 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     done: tasks.filter(t => t.status === 'done'),
   };
 
+  const doneCount = tasksByStatus.done.length;
+  const totalCount = tasks.length;
+  const progressPercent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+  const goalsList = project.goals ? parseGoals(project.goals) : [];
+
   return (
     <main className="min-h-screen p-8">
       <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold mb-2">{project.name}</h1>
-          <EditableMarkdown
-            value={project.description || ''}
-            onChange={handleDescriptionSave}
-            placeholder="Click to add a description..."
-            className="mb-2"
-          />
-          {project.goals && (
-            <p className="text-sm text-gray-500">
-              <strong>Goals:</strong> {project.goals}
-            </p>
-          )}
-        </div>
+        <h1 className="text-2xl font-bold">{project.name}</h1>
         <Button variant="outline" onClick={() => setProjectDialogOpen(true)}>
           Edit Project
         </Button>
       </div>
 
-      {files.length > 0 && (
-        <div className="mb-6">
+      <div className="flex gap-8 mb-6">
+        <div className="flex-1 max-w-2xl">
+          <EditableMarkdown
+            value={project.description || ''}
+            onChange={handleDescriptionSave}
+            placeholder="Click to add a description..."
+            className="mb-4"
+          />
+          {goalsList.length > 0 && (
+            <div className="space-y-1 mb-4">
+              <p className="text-sm font-medium text-gray-700">Goals</p>
+              {goalsList.map((goal, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                  <Circle className="h-4 w-4 mt-0.5 text-gray-300 flex-shrink-0" />
+                  <span>{goal}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {totalCount > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden max-w-xs">
+                <div
+                  className="h-full bg-green-500 transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <span className="text-sm text-gray-500">
+                {doneCount}/{totalCount} done ({progressPercent}%)
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="w-72 flex-shrink-0">
+          <p className="text-sm text-gray-600 mb-2">Files</p>
           <FileList
             files={files}
             onFileDeleted={(fileId) => setFiles(prev => prev.filter(f => f.id !== fileId))}
+            layout="grid"
+            hideTitle
+            addButton={
+              <FileUploadDialog
+                entityType="project"
+                entityId={id}
+                onUploadComplete={(file) => setFiles(prev => [...prev, file])}
+                variant="tile"
+              />
+            }
           />
         </div>
-      )}
+      </div>
 
       <div className="flex items-center gap-4 mb-8">
         <Button onClick={() => { setEditingTask(null); setTaskDialogOpen(true); }}>
           + Add Task
         </Button>
-        <FileUploadDialog
-          entityType="project"
-          entityId={id}
-          onUploadComplete={(file) => setFiles(prev => [...prev, file])}
-        />
         <span className="text-sm text-gray-500">{tasks.length} tasks</span>
       </div>
 
@@ -173,7 +212,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <h3 className="font-semibold mb-3 capitalize">
               {status.replace('_', ' ')} ({tasksByStatus[status].length})
             </h3>
-            <div className="space-y-2">
+            <div className={`space-y-2 min-h-[100px] ${tasksByStatus[status].length === 0 ? 'border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center' : ''}`}>
+              {tasksByStatus[status].length === 0 && (
+                <p className="text-sm text-gray-400">No tasks</p>
+              )}
               {tasksByStatus[status].map(task => (
                 <Card
                   key={task.id}

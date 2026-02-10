@@ -15,9 +15,10 @@ interface FileUploadDialogProps {
   entityType: AIEntityType;
   entityId: string;
   onUploadComplete: (file: FileAttachment) => void;
+  variant?: 'button' | 'tile';
 }
 
-export function FileUploadDialog({ entityType, entityId, onUploadComplete }: FileUploadDialogProps) {
+export function FileUploadDialog({ entityType, entityId, onUploadComplete, variant = 'button' }: FileUploadDialogProps) {
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,17 +110,30 @@ export function FileUploadDialog({ entityType, entityId, onUploadComplete }: Fil
     }
   }, [open, handlePaste]);
 
+  const trigger = variant === 'tile' ? (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="h-24 w-24 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 hover:text-gray-500 transition-colors"
+    >
+      <Upload className="h-6 w-6 mb-1" />
+      <span className="text-xs">Add</span>
+    </button>
+  ) : (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={() => setOpen(true)}
+    >
+      <Upload className="h-4 w-4 mr-2" />
+      Add file
+    </Button>
+  );
+
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen(true)}
-      >
-        <Upload className="h-4 w-4 mr-2" />
-        Add file
-      </Button>
+      {trigger}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
