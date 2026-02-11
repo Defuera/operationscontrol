@@ -66,6 +66,30 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction, onEditMe
     setLoadingActionId(null);
   };
 
+  const pendingActions = actions.filter(a => a.status === 'pending');
+
+  const handleConfirmAll = async () => {
+    for (const action of pendingActions) {
+      setLoadingActionId(action.id);
+      await onConfirmAction(action.id);
+      setActions(prev => prev.map(a =>
+        a.id === action.id ? { ...a, status: 'confirmed' } : a
+      ));
+    }
+    setLoadingActionId(null);
+  };
+
+  const handleRejectAll = async () => {
+    for (const action of pendingActions) {
+      setLoadingActionId(action.id);
+      await onRejectAction(action.id);
+      setActions(prev => prev.map(a =>
+        a.id === action.id ? { ...a, status: 'rejected' } : a
+      ));
+    }
+    setLoadingActionId(null);
+  };
+
   const handleStartEdit = () => {
     setEditContent(message.content);
     setIsEditing(true);
@@ -149,6 +173,32 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction, onEditMe
               Save & Regenerate
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Bulk action buttons when multiple pending actions */}
+      {pendingActions.length > 1 && (
+        <div className="flex gap-2 max-w-[90%]">
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-green-600 hover:text-green-700 hover:bg-green-100 border-green-300"
+            onClick={handleConfirmAll}
+            disabled={loadingActionId !== null}
+          >
+            <Check className="h-4 w-4 mr-1" />
+            Confirm All ({pendingActions.length})
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-red-600 hover:text-red-700 hover:bg-red-100 border-red-300"
+            onClick={handleRejectAll}
+            disabled={loadingActionId !== null}
+          >
+            <X className="h-4 w-4 mr-1" />
+            Reject All
+          </Button>
         </div>
       )}
 
