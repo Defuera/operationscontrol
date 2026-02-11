@@ -453,15 +453,19 @@ export function describeWriteAction(
 
     // Memories
     case 'createMemory': {
-      const preview = (args.content as string).slice(0, 50);
-      const suffix = (args.content as string).length > 50 ? '...' : '';
+      const content = args.content as string | undefined;
+      if (!content) {
+        return `Create memory${args.anchorPath ? ` (for ${args.anchorPath})` : ' (global)'}`;
+      }
+      const preview = content.slice(0, 50);
+      const suffix = content.length > 50 ? '...' : '';
       return `Remember: "${preview}${suffix}"${args.anchorPath ? ` (for ${args.anchorPath})` : ' (global)'}`;
     }
     case 'updateMemory': {
       const changes = Object.entries(args)
         .filter(([k]) => k !== 'shortCode')
         .map(([k, v]) => {
-          if (k === 'content') {
+          if (k === 'content' && v) {
             const preview = (v as string).slice(0, 30);
             return `content: "${preview}..."`;
           }
