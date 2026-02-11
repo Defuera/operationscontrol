@@ -9,6 +9,7 @@ import {
   getThreadById,
   createThread as createThreadServer,
   archiveThread as archiveThreadServer,
+  updateThreadTitle as updateThreadTitleServer,
   type ThreadSummary,
 } from '@/actions/ai-chat';
 
@@ -34,6 +35,7 @@ export interface AIChatActions {
   createNewThread: () => Promise<void>;
   archiveCurrentThread: () => Promise<void>;
   editMessage: (messageId: string, newContent: string) => Promise<void>;
+  renameThread: (threadId: string, title: string) => Promise<void>;
 }
 
 export type AIChatContextValue = AIChatState & AIChatActions;
@@ -289,6 +291,20 @@ export function useAIChatState(): AIChatContextValue {
     }
   }, [state.threadId, state.threads]);
 
+  const renameThread = useCallback(async (threadId: string, title: string) => {
+    try {
+      await updateThreadTitleServer(threadId, title);
+      setState(prev => ({
+        ...prev,
+        threads: prev.threads.map(t =>
+          t.id === threadId ? { ...t, title: title.trim() || null } : t
+        ),
+      }));
+    } catch (error) {
+      console.error('Failed to rename thread:', error);
+    }
+  }, []);
+
   const editMessage = useCallback(async (messageId: string, newContent: string) => {
     setState(prev => ({ ...prev, isLoading: true }));
 
@@ -391,5 +407,6 @@ export function useAIChatState(): AIChatContextValue {
     createNewThread,
     archiveCurrentThread,
     editMessage,
+    renameThread,
   };
 }

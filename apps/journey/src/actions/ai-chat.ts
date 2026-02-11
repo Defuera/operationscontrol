@@ -532,6 +532,14 @@ export async function archiveThread(threadId: string): Promise<void> {
     .where(and(eq(aiThreads.id, threadId), eq(aiThreads.userId, user.id)));
 }
 
+export async function updateThreadTitle(threadId: string, title: string): Promise<void> {
+  const user = await requireAuth();
+
+  await db.update(aiThreads)
+    .set({ title: title.trim() || null, updatedAt: new Date().toISOString() })
+    .where(and(eq(aiThreads.id, threadId), eq(aiThreads.userId, user.id)));
+}
+
 export async function editMessageAndBranch(messageId: string): Promise<{ threadId: string }> {
   const user = await requireAuth();
   const now = new Date().toISOString();

@@ -8,15 +8,10 @@ import { ChatMessages } from './chat-messages';
 import { ChatInput } from './chat-input';
 import { MemoryList } from './memory-list';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { MessageCircle, X, Plus, Archive, Brain } from 'lucide-react';
+import { Archive, Brain, ChevronDown, MessageCircle, Pencil, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function formatThreadDate(dateString: string): string {
@@ -34,6 +29,9 @@ type TabValue = 'chat' | 'context';
 
 export function AIChatDrawer() {
   const [activeTab, setActiveTab] = useState<TabValue>('chat');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [threadSelectorOpen, setThreadSelectorOpen] = useState(false);
   const router = useRouter();
   const {
     isOpen,
@@ -51,7 +49,22 @@ export function AIChatDrawer() {
     createNewThread,
     archiveCurrentThread,
     editMessage,
+    renameThread,
   } = useAIChat();
+
+  const currentThread = threads.find(t => t.id === threadId);
+
+  const startEditing = () => {
+    setEditTitle(currentThread?.title || '');
+    setIsEditingTitle(true);
+  };
+
+  const handleSaveTitle = async () => {
+    if (threadId) {
+      await renameThread(threadId, editTitle);
+    }
+    setIsEditingTitle(false);
+  };
 
   const handleConfirm = async (actionId: string) => {
     await confirmAction(actionId);
@@ -103,25 +116,74 @@ export function AIChatDrawer() {
 
           {/* Row 2: Thread switcher - only on Chat tab */}
           {activeTab === 'chat' && (
-            <div className="flex items-center gap-2">
-              <Select
-                value={threadId || ''}
-                onValueChange={(value) => switchThread(value)}
-              >
-                <SelectTrigger className="flex-1 h-7 text-xs min-w-0">
-                  <SelectValue placeholder="New conversation" />
-                </SelectTrigger>
-                <SelectContent>
-                  {threads.map((thread) => (
-                    <SelectItem key={thread.id} value={thread.id} className="text-xs">
-                      {thread.title || formatThreadDate(thread.createdAt)}
-                      <span className="text-muted-foreground ml-2">
-                        ({thread.messageCount})
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-1">
+              {/* Thread name - inline editable */}
+              {isEditingTitle ? (
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={handleSaveTitle}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
+                  className="h-7 text-xs w-48"
+                  autoFocus
+                  placeholder="Thread name..."
+                />
+              ) : (
+                <span className="text-sm font-medium truncate max-w-48">
+                  {currentThread?.title || (currentThread ? formatThreadDate(currentThread.createdAt) : 'New conversation')}
+                </span>
+              )}
+
+              {/* Edit button - only when thread exists and not editing */}
+              {threadId && !isEditingTitle && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={startEditing}
+                  title="Rename conversation"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              )}
+
+              {/* Thread selector popover */}
+              <Popover open={threadSelectorOpen} onOpenChange={setThreadSelectorOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" title="Switch conversation">
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2" align="start">
+                  <div className="space-y-1">
+                    {threads.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-2 text-center">No conversations yet</p>
+                    ) : (
+                      threads.map((thread) => (
+                        <Button
+                          key={thread.id}
+                          variant={thread.id === threadId ? 'secondary' : 'ghost'}
+                          className="w-full justify-start text-xs h-8"
+                          onClick={() => {
+                            switchThread(thread.id);
+                            setThreadSelectorOpen(false);
+                          }}
+                        >
+                          <span className="truncate flex-1 text-left">
+                            {thread.title || formatThreadDate(thread.createdAt)}
+                          </span>
+                          <span className="ml-2 text-muted-foreground shrink-0">({thread.messageCount})</span>
+                        </Button>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Spacer to push new/archive to the right */}
+              <div className="flex-1" />
+
+              {/* New conversation button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -131,6 +193,8 @@ export function AIChatDrawer() {
               >
                 <Plus className="h-3.5 w-3.5" />
               </Button>
+
+              {/* Archive button */}
               {threadId && (
                 <Button
                   variant="ghost"
