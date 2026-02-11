@@ -28,6 +28,7 @@ Claude acts as a productivity partner:
 - PREFER CLI tools over manual file generation (e.g., `npx create-next-app`, `npx shadcn-ui add`)
 - PREFER npm over other package managers
 - MUST run commands from project root unless otherwise specified
+- DO NOT push to remote automatically - user will push manually
 
 ## AI Guides
 
