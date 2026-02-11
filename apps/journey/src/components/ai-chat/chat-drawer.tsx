@@ -6,7 +6,9 @@ import { format } from 'date-fns';
 import { useAIChat } from './context';
 import { ChatMessages } from './chat-messages';
 import { ChatInput } from './chat-input';
+import { MemoryList } from './memory-list';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -14,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MessageCircle, X, Plus, PanelLeftClose, PanelLeft, Archive } from 'lucide-react';
+import { MessageCircle, X, Plus, Archive, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function formatThreadDate(dateString: string): string {
@@ -28,8 +30,10 @@ function formatThreadDate(dateString: string): string {
   return format(date, 'MMM d, h:mm a');
 }
 
+type TabValue = 'chat' | 'context';
+
 export function AIChatDrawer() {
-  const [isWide, setIsWide] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabValue>('chat');
   const router = useRouter();
   const {
     isOpen,
@@ -71,91 +75,94 @@ export function AIChatDrawer() {
       {/* Drawer panel */}
       <div
         className={cn(
-          'fixed inset-y-0 right-0 bg-white shadow-xl z-50 flex flex-col transition-all duration-300 ease-in-out',
-          isWide ? 'w-full md:w-1/2' : 'w-96',
+          'fixed inset-y-0 right-0 bg-white shadow-xl z-50 flex flex-col transition-all duration-300 ease-in-out w-full md:w-1/2',
           isOpen ? 'translate-x-0' : 'translate-x-full'
         )}
       >
         {/* Header */}
-        <div className="flex flex-col border-b">
-          <div className="flex items-center justify-between p-4 pb-2">
-            <div>
-              <h2 className="font-semibold">AI Assistant</h2>
-              {path && (
-                <p className="text-xs text-muted-foreground">
-                  {path}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
+        <div className="flex flex-col border-b px-3 py-2 gap-2">
+          {/* Row 1: Tabs + close button */}
+          <div className="flex items-center">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+              <TabsList variant="line" className="h-8 gap-0">
+                <TabsTrigger value="chat" className="px-3 text-xs gap-1.5">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Chat
+                </TabsTrigger>
+                <TabsTrigger value="context" className="px-3 text-xs gap-1.5">
+                  <Brain className="h-3.5 w-3.5" />
+                  Context
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="flex-1" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={closeChat}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Row 2: Thread switcher - only on Chat tab */}
+          {activeTab === 'chat' && (
+            <div className="flex items-center gap-2">
+              <Select
+                value={threadId || ''}
+                onValueChange={(value) => switchThread(value)}
+              >
+                <SelectTrigger className="flex-1 h-7 text-xs min-w-0">
+                  <SelectValue placeholder="New conversation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {threads.map((thread) => (
+                    <SelectItem key={thread.id} value={thread.id} className="text-xs">
+                      {thread.title || formatThreadDate(thread.createdAt)}
+                      <span className="text-muted-foreground ml-2">
+                        ({thread.messageCount})
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsWide(!isWide)}
-                title={isWide ? 'Narrow view' : 'Wide view'}
+                className="h-7 w-7 shrink-0"
+                onClick={createNewThread}
+                title="New conversation"
               >
-                {isWide ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+                <Plus className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={closeChat}>
-                <X className="h-4 w-4" />
-              </Button>
+              {threadId && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={archiveCurrentThread}
+                  title="Archive conversation"
+                >
+                  <Archive className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
-          </div>
-
-          {/* Thread switcher */}
-          <div className="flex items-center gap-2 px-4 pb-3">
-            <Select
-              value={threadId || ''}
-              onValueChange={(value) => switchThread(value)}
-            >
-              <SelectTrigger className="flex-1 h-8 text-xs">
-                <SelectValue placeholder="New conversation" />
-              </SelectTrigger>
-              <SelectContent>
-                {threads.map((thread) => (
-                  <SelectItem key={thread.id} value={thread.id} className="text-xs">
-                    {thread.title || formatThreadDate(thread.createdAt)}
-                    <span className="text-muted-foreground ml-2">
-                      ({thread.messageCount})
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={createNewThread}
-              title="New conversation"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            {threadId && (
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={archiveCurrentThread}
-                title="Archive conversation"
-              >
-                <Archive className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Messages */}
-        <ChatMessages
-          messages={messages}
-          isLoading={isLoading}
-          onConfirmAction={handleConfirm}
-          onRejectAction={rejectAction}
-          onEditMessage={editMessage}
-        />
+        {/* Content */}
+        {activeTab === 'chat' ? (
+          <ChatMessages
+            messages={messages}
+            isLoading={isLoading}
+            onConfirmAction={handleConfirm}
+            onRejectAction={rejectAction}
+            onEditMessage={editMessage}
+          />
+        ) : (
+          <MemoryList path={path} />
+        )}
 
-        {/* Input */}
-        <ChatInput onSend={sendMessage} disabled={isLoading} />
+        {/* Input - only on Chat tab */}
+        {activeTab === 'chat' && (
+          <ChatInput onSend={sendMessage} disabled={isLoading} />
+        )}
       </div>
 
       {/* Backdrop */}
