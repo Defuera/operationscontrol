@@ -70,9 +70,21 @@ export interface Goal {
 // AI Chat Types
 export type AIMessageRole = 'user' | 'assistant';
 export type AIActionType = 'create' | 'update' | 'delete';
-export type AIEntityType = 'task' | 'project' | 'goal' | 'journal' | 'file';
+export type AIEntityType = 'task' | 'project' | 'goal' | 'journal' | 'file' | 'memory';
 export type FileEntityType = 'task' | 'project' | 'goal' | 'journal';
 export type AIActionStatus = 'pending' | 'confirmed' | 'rejected' | 'reverted';
+
+// Memory (AI-persisted context)
+export interface Memory {
+  id: string;
+  userId: string;
+  anchorPath: string | null;
+  content: string;
+  tags: string | null;
+  createdAt: string;
+  updatedAt: string;
+  shortCode?: number;
+}
 
 export interface AIThread {
   id: string;
@@ -128,7 +140,7 @@ export interface FileAttachment {
 }
 
 // Entity Short Codes (for GitHub-style references like task#123)
-export type MentionEntityType = 'task' | 'project' | 'goal' | 'journal';
+export type MentionEntityType = 'task' | 'project' | 'goal' | 'journal' | 'memory';
 
 export interface EntityShortCode {
   id: string;

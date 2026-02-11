@@ -15,6 +15,7 @@ import { getGoals } from '@/actions/goals';
 import { getTasks } from '@/actions/tasks';
 import { getFilesByEntity } from '@/actions/files';
 import { getEntityIdByShortCode } from '@/actions/mentions';
+import { getMemoriesForContext } from '@/actions/memories';
 import { createClient } from '@/lib/supabase/server';
 import type { AIEntityType, AIActionType, MentionEntityType } from '@/types';
 
@@ -28,6 +29,35 @@ async function getGoalsContext(): Promise<string | null> {
 
   const goalsList = activeGoals.map(g => `- ${g.title} (${g.horizon})`).join('\n');
   return `User's active goals:\n${goalsList}`;
+}
+
+async function getMemoriesContext(userId: string, path?: string): Promise<string | null> {
+  const memories = await getMemoriesForContext(userId, path);
+
+  if (memories.length === 0) return null;
+
+  const globalMemories = memories.filter(m => !m.anchorPath);
+  const pathMemories = memories.filter(m => m.anchorPath);
+
+  let context = 'Remembered context:\n';
+
+  if (pathMemories.length > 0) {
+    context += `\nFor this context (${path}):\n`;
+    context += pathMemories.map(m => {
+      const tags = m.tags ? ` [${m.tags}]` : '';
+      return `- ${m.content}${tags} (memory#${m.shortCode})`;
+    }).join('\n');
+  }
+
+  if (globalMemories.length > 0) {
+    context += `\n\nGlobal memories:\n`;
+    context += globalMemories.map(m => {
+      const tags = m.tags ? ` [${m.tags}]` : '';
+      return `- ${m.content}${tags} (memory#${m.shortCode})`;
+    }).join('\n');
+  }
+
+  return context;
 }
 
 async function getContextFromPath(path: string): Promise<string | null> {
@@ -153,6 +183,15 @@ export async function POST(request: Request) {
       messages.push({
         role: 'system',
         content: goalsContext,
+      });
+    }
+
+    // Add memories context (path-specific + global)
+    const memoriesContext = await getMemoriesContext(user.id, path);
+    if (memoriesContext) {
+      messages.push({
+        role: 'system',
+        content: memoriesContext,
       });
     }
 
@@ -321,6 +360,7 @@ function getEntityType(toolName: string): AIEntityType {
   if (toolName.includes('Goal')) return 'goal';
   if (toolName.includes('Journal')) return 'journal';
   if (toolName.includes('File')) return 'file';
+  if (toolName.includes('Memory')) return 'memory';
   return 'task';
 }
 

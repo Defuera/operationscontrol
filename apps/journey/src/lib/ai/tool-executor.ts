@@ -1,7 +1,7 @@
 import { db } from '@/db';
-import { tasks, projects, goals, journalEntries, files, entityShortCodes } from '@/db/schema';
+import { tasks, projects, goals, journalEntries, files, entityShortCodes, memories } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import type { Task, Project, Goal, JournalEntry, FileAttachment, FileEntityType, MentionEntityType } from '@/types';
+import type { Task, Project, Goal, JournalEntry, FileAttachment, FileEntityType, MentionEntityType, Memory } from '@/types';
 
 // Resolve a short code to an entity ID
 async function resolveShortCode(
@@ -316,6 +316,77 @@ export async function executeReadTool(name: string, args: Record<string, unknown
         return { success: true, data: result[0] as FileAttachment };
       }
 
+      case 'searchMemories': {
+        if (!userId) {
+          return { success: false, error: 'User ID required for memory search' };
+        }
+        const baseCondition = eq(memories.userId, userId);
+        const pathCondition = args.anchorPath
+          ? eq(memories.anchorPath, args.anchorPath as string)
+          : undefined;
+
+        const results = await db
+          .select({
+            id: memories.id,
+            userId: memories.userId,
+            anchorPath: memories.anchorPath,
+            content: memories.content,
+            tags: memories.tags,
+            createdAt: memories.createdAt,
+            updatedAt: memories.updatedAt,
+            shortCode: entityShortCodes.shortCode,
+          })
+          .from(memories)
+          .leftJoin(
+            entityShortCodes,
+            and(
+              eq(entityShortCodes.entityId, memories.id),
+              eq(entityShortCodes.entityType, 'memory')
+            )
+          )
+          .where(pathCondition ? and(baseCondition, pathCondition) : baseCondition)
+          .orderBy(desc(memories.createdAt));
+
+        let allMemories = results as Memory[];
+
+        // Filter by query string if provided
+        if (args.query) {
+          const searchTerm = (args.query as string).toLowerCase();
+          allMemories = allMemories.filter(m =>
+            m.content.toLowerCase().includes(searchTerm)
+          );
+        }
+
+        return { success: true, data: allMemories };
+      }
+
+      case 'getMemory': {
+        if (!userId) {
+          return { success: false, error: 'User ID required for short code lookup' };
+        }
+        const shortCode = args.shortCode as number;
+        const entityId = await resolveShortCode('memory', shortCode, userId);
+        if (!entityId) {
+          return { success: false, error: `Memory memory#${shortCode} not found` };
+        }
+        const result = await db
+          .select({
+            id: memories.id,
+            userId: memories.userId,
+            anchorPath: memories.anchorPath,
+            content: memories.content,
+            tags: memories.tags,
+            createdAt: memories.createdAt,
+            updatedAt: memories.updatedAt,
+          })
+          .from(memories)
+          .where(and(eq(memories.id, entityId), eq(memories.userId, userId)));
+        if (result.length === 0) {
+          return { success: false, error: `Memory memory#${shortCode} not found` };
+        }
+        return { success: true, data: { ...result[0], shortCode } as Memory };
+      }
+
       default:
         return { success: false, error: `Unknown tool: ${name}` };
     }
@@ -379,6 +450,28 @@ export function describeWriteAction(
     // Files
     case 'deleteFile':
       return `Delete file attachment`;
+
+    // Memories
+    case 'createMemory': {
+      const preview = (args.content as string).slice(0, 50);
+      const suffix = (args.content as string).length > 50 ? '...' : '';
+      return `Remember: "${preview}${suffix}"${args.anchorPath ? ` (for ${args.anchorPath})` : ' (global)'}`;
+    }
+    case 'updateMemory': {
+      const changes = Object.entries(args)
+        .filter(([k]) => k !== 'shortCode')
+        .map(([k, v]) => {
+          if (k === 'content') {
+            const preview = (v as string).slice(0, 30);
+            return `content: "${preview}..."`;
+          }
+          return `${k}: ${v}`;
+        })
+        .join(', ');
+      return `Update memory#${args.shortCode}: ${changes}`;
+    }
+    case 'deleteMemory':
+      return `Delete memory#${args.shortCode}`;
 
     default:
       return `${name}: ${JSON.stringify(args)}`;

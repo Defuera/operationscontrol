@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { aiThreads, aiMessages, aiActions, tasks, projects, goals, journalEntries, files } from '@/db/schema';
+import { aiThreads, aiMessages, aiActions, tasks, projects, goals, journalEntries, files, memories, entityShortCodes } from '@/db/schema';
 import { eq, and, asc, desc, sql } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
@@ -247,6 +247,62 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
       await db.delete(files)
         .where(and(eq(files.id, action.entityId), eq(files.userId, userId)));
     }
+  } else if (action.entityType === 'memory') {
+    if (action.actionType === 'create') {
+      const newMemory = await db.insert(memories).values({
+        userId,
+        content: payload.content,
+        anchorPath: payload.anchorPath || null,
+        tags: payload.tags || null,
+      }).returning();
+      entityId = newMemory[0].id;
+      snapshotAfter = newMemory[0];
+
+      // Assign short code for entity linking
+      const maxResult = await db
+        .select({ maxCode: sql<number>`COALESCE(MAX(short_code), 0)` })
+        .from(entityShortCodes)
+        .where(
+          and(
+            eq(entityShortCodes.userId, userId),
+            eq(entityShortCodes.entityType, 'memory')
+          )
+        );
+      const nextCode = (maxResult[0]?.maxCode || 0) + 1;
+      await db.insert(entityShortCodes).values({
+        userId,
+        entityType: 'memory',
+        entityId: newMemory[0].id,
+        shortCode: nextCode,
+      });
+    } else if (action.actionType === 'update' && action.entityId) {
+      const [existing] = await db.select().from(memories)
+        .where(and(eq(memories.id, action.entityId), eq(memories.userId, userId)));
+      if (!existing) throw new Error('Memory not found');
+      snapshotBefore = existing;
+      const { shortCode: _sc4, ...memoryUpdates } = payload;
+      await db.update(memories)
+        .set({ ...memoryUpdates, updatedAt: now })
+        .where(and(eq(memories.id, action.entityId), eq(memories.userId, userId)));
+      const [updated] = await db.select().from(memories).where(eq(memories.id, action.entityId));
+      snapshotAfter = updated;
+    } else if (action.actionType === 'delete' && action.entityId) {
+      const [existing] = await db.select().from(memories)
+        .where(and(eq(memories.id, action.entityId), eq(memories.userId, userId)));
+      if (!existing) throw new Error('Memory not found');
+      snapshotBefore = existing;
+      // Delete the short code first
+      await db.delete(entityShortCodes)
+        .where(
+          and(
+            eq(entityShortCodes.entityId, action.entityId),
+            eq(entityShortCodes.entityType, 'memory'),
+            eq(entityShortCodes.userId, userId)
+          )
+        );
+      await db.delete(memories)
+        .where(and(eq(memories.id, action.entityId), eq(memories.userId, userId)));
+    }
   }
 
   // Update action with execution details
@@ -421,23 +477,51 @@ export interface TokenUsageByModel {
   totalTokens: number;
 }
 
-export async function getTokenUsageStats(): Promise<TokenUsageByModel[]> {
-  const stats = await db
+export interface UsageStats {
+  userUsage: TokenUsageByModel[];
+  overallUsage: TokenUsageByModel[] | null;
+  isAdmin: boolean;
+}
+
+export async function getTokenUsageStats(): Promise<UsageStats> {
+  const user = await requireAuth();
+  const isAdmin = user.id === process.env.ADMIN_USER_ID;
+
+  // User's own usage (join through threads to filter by user)
+  const userStats = await db
     .select({
       model: aiMessages.model,
       promptTokens: sql<number>`COALESCE(SUM(${aiMessages.promptTokens}), 0)`.as('prompt_tokens'),
       completionTokens: sql<number>`COALESCE(SUM(${aiMessages.completionTokens}), 0)`.as('completion_tokens'),
     })
     .from(aiMessages)
-    .where(sql`${aiMessages.model} IS NOT NULL`)
+    .innerJoin(aiThreads, eq(aiMessages.threadId, aiThreads.id))
+    .where(and(sql`${aiMessages.model} IS NOT NULL`, eq(aiThreads.userId, user.id)))
     .groupBy(aiMessages.model);
 
-  return stats.map(s => ({
-    model: s.model!,
-    promptTokens: Number(s.promptTokens),
-    completionTokens: Number(s.completionTokens),
-    totalTokens: Number(s.promptTokens) + Number(s.completionTokens),
-  }));
+  const mapStats = (stats: typeof userStats) =>
+    stats.map(s => ({
+      model: s.model!,
+      promptTokens: Number(s.promptTokens),
+      completionTokens: Number(s.completionTokens),
+      totalTokens: Number(s.promptTokens) + Number(s.completionTokens),
+    }));
+
+  let overallUsage: TokenUsageByModel[] | null = null;
+  if (isAdmin) {
+    const overallStats = await db
+      .select({
+        model: aiMessages.model,
+        promptTokens: sql<number>`COALESCE(SUM(${aiMessages.promptTokens}), 0)`.as('prompt_tokens'),
+        completionTokens: sql<number>`COALESCE(SUM(${aiMessages.completionTokens}), 0)`.as('completion_tokens'),
+      })
+      .from(aiMessages)
+      .where(sql`${aiMessages.model} IS NOT NULL`)
+      .groupBy(aiMessages.model);
+    overallUsage = mapStats(overallStats);
+  }
+
+  return { userUsage: mapStats(userStats), overallUsage, isAdmin };
 }
 
 export async function archiveThread(threadId: string): Promise<void> {

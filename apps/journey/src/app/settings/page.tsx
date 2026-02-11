@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { getTokenUsageStats, type TokenUsageByModel } from '@/actions/ai-chat';
+import { getTokenUsageStats, type TokenUsageByModel, type UsageStats } from '@/actions/ai-chat';
 import { DEFAULT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -52,7 +52,7 @@ export default function SettingsPage() {
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const [promptSaved, setPromptSaved] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const [usage, setUsage] = useState<TokenUsageByModel[]>([]);
+  const [usageStats, setUsageStats] = useState<UsageStats>({ userUsage: [], overallUsage: null, isAdmin: false });
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -73,7 +73,7 @@ export default function SettingsPage() {
     }
 
     // Load usage stats
-    getTokenUsageStats().then(setUsage);
+    getTokenUsageStats().then(setUsageStats);
   }, []);
 
   const handleModelChange = (value: string) => {
@@ -103,8 +103,11 @@ export default function SettingsPage() {
 
   const selectedModel = AI_MODELS.find(m => m.id === model);
 
-  const totalTokens = usage.reduce((sum, u) => sum + u.totalTokens, 0);
-  const totalCost = usage.reduce((sum, u) => sum + calculateCost(u), 0);
+  const { userUsage, overallUsage, isAdmin } = usageStats;
+  const totalTokens = userUsage.reduce((sum, u) => sum + u.totalTokens, 0);
+  const totalCost = userUsage.reduce((sum, u) => sum + calculateCost(u), 0);
+  const overallTotalTokens = overallUsage?.reduce((sum, u) => sum + u.totalTokens, 0) ?? 0;
+  const overallTotalCost = overallUsage?.reduce((sum, u) => sum + calculateCost(u), 0) ?? 0;
 
   return (
     <main className="min-h-screen p-8 max-w-2xl mx-auto">
@@ -163,7 +166,7 @@ export default function SettingsPage() {
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Usage</h2>
+          <h2 className="text-lg font-semibold mb-4">Your Usage</h2>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-muted rounded-lg p-4">
@@ -176,10 +179,10 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {usage.length > 0 ? (
+          {userUsage.length > 0 ? (
             <div className="space-y-3">
               <p className="text-sm font-medium">By Model</p>
-              {usage.map((u) => {
+              {userUsage.map((u) => {
                 const modelInfo = AI_MODELS.find(m => m.id === u.model);
                 const cost = calculateCost(u);
                 return (
@@ -202,6 +205,45 @@ export default function SettingsPage() {
             <p className="text-sm text-muted-foreground">No usage data yet.</p>
           )}
         </Card>
+
+        {isAdmin && overallUsage && (
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Overall Platform Usage</h2>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-muted rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">Total Tokens</p>
+                <p className="text-2xl font-bold">{formatNumber(overallTotalTokens)}</p>
+              </div>
+              <div className="bg-muted rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">Estimated Cost</p>
+                <p className="text-2xl font-bold">${overallTotalCost.toFixed(4)}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-medium">By Model</p>
+              {overallUsage.map((u) => {
+                const modelInfo = AI_MODELS.find(m => m.id === u.model);
+                const cost = calculateCost(u);
+                return (
+                  <div key={u.model} className="flex items-center justify-between text-sm border-b pb-2">
+                    <div>
+                      <p className="font-medium">{modelInfo?.name || u.model}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {formatNumber(u.promptTokens)} in / {formatNumber(u.completionTokens)} out
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p>{formatNumber(u.totalTokens)} tokens</p>
+                      <p className="text-muted-foreground text-xs">${cost.toFixed(4)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-4">Telegram</h2>

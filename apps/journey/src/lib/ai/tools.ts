@@ -210,6 +210,43 @@ export const readTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'searchMemories',
+      description: 'Search for memories. Memories are persistent notes that the AI can use to remember important context across conversations.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Search query to match against memory content',
+          },
+          anchorPath: {
+            type: 'string',
+            description: 'Filter by anchor path (e.g., /projects/5). Omit to get all memories.',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getMemory',
+      description: 'Get a specific memory by short code (e.g., memory#1 → use shortCode: 1)',
+      parameters: {
+        type: 'object',
+        properties: {
+          shortCode: {
+            type: 'number',
+            description: 'The memory short code number (e.g., 1 for memory#1)',
+          },
+        },
+        required: ['shortCode'],
+      },
+    },
+  },
 ];
 
 // Write tools (require confirmation)
@@ -540,6 +577,73 @@ export const writeTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'createMemory',
+      description: 'Create a new memory to persist important context across conversations. Use this to remember decisions, preferences, facts about the user, or project-specific information.',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: {
+            type: 'string',
+            description: 'The content to remember (be concise but complete)',
+          },
+          anchorPath: {
+            type: 'string',
+            description: 'Path to anchor this memory to (e.g., /projects/5). Omit for global memory.',
+          },
+          tags: {
+            type: 'string',
+            description: 'Optional comma-separated tags for categorization (e.g., "decision,architecture")',
+          },
+        },
+        required: ['content'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'updateMemory',
+      description: 'Update an existing memory by short code',
+      parameters: {
+        type: 'object',
+        properties: {
+          shortCode: {
+            type: 'number',
+            description: 'The memory short code number (e.g., 1 for memory#1)',
+          },
+          content: {
+            type: 'string',
+            description: 'New content for the memory',
+          },
+          tags: {
+            type: 'string',
+            description: 'New tags for the memory (comma-separated)',
+          },
+        },
+        required: ['shortCode'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'deleteMemory',
+      description: 'Delete a memory permanently by short code',
+      parameters: {
+        type: 'object',
+        properties: {
+          shortCode: {
+            type: 'number',
+            description: 'The memory short code number (e.g., 1 for memory#1)',
+          },
+        },
+        required: ['shortCode'],
+      },
+    },
+  },
 ];
 
 export const allTools = [...readTools, ...writeTools];
@@ -550,6 +654,7 @@ export const writeToolNames = [
   'createGoal', 'updateGoal', 'deleteGoal',
   'createJournalEntry', 'updateJournalEntry', 'deleteJournalEntry',
   'deleteFile',
+  'createMemory', 'updateMemory', 'deleteMemory',
 ];
 export const readToolNames = [
   'searchTasks', 'getTask',
@@ -557,6 +662,7 @@ export const readToolNames = [
   'searchGoals', 'getGoal',
   'searchJournalEntries', 'getJournalEntry',
   'getFilesByEntity', 'getFile',
+  'searchMemories', 'getMemory',
 ];
 
 export function isWriteTool(name: string): boolean {

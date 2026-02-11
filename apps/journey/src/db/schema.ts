@@ -128,7 +128,7 @@ export const aiActions = pgTable('ai_actions', {
     enum: ['create', 'update', 'delete']
   }).notNull(),
   entityType: text('entity_type', {
-    enum: ['task', 'project', 'goal', 'journal', 'file']
+    enum: ['task', 'project', 'goal', 'journal', 'file', 'memory']
   }).notNull(),
   entityId: uuid('entity_id'),
   payload: text('payload').notNull(), // JSON string of the action data
@@ -162,9 +162,20 @@ export const entityShortCodes = pgTable('entity_short_codes', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').notNull(),
   entityType: text('entity_type', {
-    enum: ['task', 'project', 'goal', 'journal']
+    enum: ['task', 'project', 'goal', 'journal', 'memory']
   }).notNull(),
   entityId: uuid('entity_id').notNull(),
   shortCode: integer('short_code').notNull(),
   createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+});
+
+// Memories (AI-persisted context)
+export const memories = pgTable('memories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  anchorPath: text('anchor_path'),  // '/projects/5' or null for global
+  content: text('content').notNull(),
+  tags: text('tags'),  // Optional comma-separated tags
+  createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { mode: 'string' }).notNull().defaultNow(),
 });

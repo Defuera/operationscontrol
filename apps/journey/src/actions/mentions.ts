@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { entityShortCodes, tasks, projects, goals, journalEntries } from '@/db/schema';
+import { entityShortCodes, tasks, projects, goals, journalEntries, memories } from '@/db/schema';
 import { eq, and, desc, sql, ilike } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import type { MentionEntityType, EntityShortCode } from '@/types';
@@ -316,6 +316,41 @@ async function searchByTitle(
           status: null,
         }));
     }
+
+    case 'memory': {
+      const results = await db
+        .select({
+          entityId: memories.id,
+          content: memories.content,
+          shortCode: entityShortCodes.shortCode,
+        })
+        .from(memories)
+        .leftJoin(
+          entityShortCodes,
+          and(
+            eq(entityShortCodes.entityId, memories.id),
+            eq(entityShortCodes.entityType, 'memory')
+          )
+        )
+        .where(
+          and(
+            eq(memories.userId, userId),
+            query ? ilike(memories.content, searchPattern) : sql`TRUE`
+          )
+        )
+        .orderBy(desc(memories.createdAt))
+        .limit(limit);
+
+      return results
+        .filter((r) => r.shortCode !== null)
+        .map((r) => ({
+          entityType: 'memory' as const,
+          entityId: r.entityId,
+          shortCode: r.shortCode!,
+          title: r.content.slice(0, 50) + (r.content.length > 50 ? '...' : ''),
+          status: null,
+        }));
+    }
   }
 }
 
@@ -381,6 +416,21 @@ async function getEntityDetails(
 
       return results.map((r) => ({
         entityType: 'journal' as const,
+        entityId: r.id,
+        shortCode: shortCodeMap.get(r.id)!,
+        title: r.content.slice(0, 50) + (r.content.length > 50 ? '...' : ''),
+        status: null,
+      }));
+    }
+
+    case 'memory': {
+      const results = await db
+        .select({ id: memories.id, content: memories.content })
+        .from(memories)
+        .where(and(eq(memories.userId, userId), sql`id = ANY(${entityIds})`));
+
+      return results.map((r) => ({
+        entityType: 'memory' as const,
         entityId: r.id,
         shortCode: shortCodeMap.get(r.id)!,
         title: r.content.slice(0, 50) + (r.content.length > 50 ? '...' : ''),
@@ -521,6 +571,21 @@ async function getEntityDetailsById(
         .select({ id: journalEntries.id, content: journalEntries.content })
         .from(journalEntries)
         .where(and(eq(journalEntries.userId, userId), sql`id = ANY(${entityIds})`));
+
+      for (const r of results) {
+        result.set(r.id, {
+          title: r.content.slice(0, 50) + (r.content.length > 50 ? '...' : ''),
+          status: null,
+        });
+      }
+      break;
+    }
+
+    case 'memory': {
+      const results = await db
+        .select({ id: memories.id, content: memories.content })
+        .from(memories)
+        .where(and(eq(memories.userId, userId), sql`id = ANY(${entityIds})`));
 
       for (const r of results) {
         result.set(r.id, {
