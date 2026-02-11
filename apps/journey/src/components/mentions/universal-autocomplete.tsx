@@ -23,6 +23,7 @@ export function UniversalAutocomplete({
     tasks: [],
     projects: [],
     goals: [],
+    memories: [],
   });
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -33,6 +34,7 @@ export function UniversalAutocomplete({
     ...results.tasks.map((r, i) => ({ ...r, groupIndex: i })),
     ...results.projects.map((r, i) => ({ ...r, groupIndex: results.tasks.length + i })),
     ...results.goals.map((r, i) => ({ ...r, groupIndex: results.tasks.length + results.projects.length + i })),
+    ...results.memories.map((r, i) => ({ ...r, groupIndex: results.tasks.length + results.projects.length + results.goals.length + i })),
   ];
 
   const totalResults = flatResults.length;
@@ -53,7 +55,7 @@ export function UniversalAutocomplete({
       } catch (error) {
         console.error('Error fetching mention results:', error);
         if (!cancelled) {
-          setResults({ tasks: [], projects: [], goals: [] });
+          setResults({ tasks: [], projects: [], goals: [], memories: [] });
         }
       } finally {
         if (!cancelled) {
@@ -175,13 +177,14 @@ export function UniversalAutocomplete({
         <div className="p-3 text-sm text-gray-500">Searching...</div>
       ) : !hasResults ? (
         <div className="p-3 text-sm text-gray-500">
-          {query ? 'No results found' : 'Type to search tasks, projects, and goals'}
+          {query ? 'No results found' : 'Type to search tasks, projects, goals, and memories'}
         </div>
       ) : (
         <div>
           {renderGroup('Tasks', results.tasks, 0)}
           {renderGroup('Projects', results.projects, results.tasks.length)}
           {renderGroup('Goals', results.goals, results.tasks.length + results.projects.length)}
+          {renderGroup('Memories', results.memories, results.tasks.length + results.projects.length + results.goals.length)}
         </div>
       )}
     </div>

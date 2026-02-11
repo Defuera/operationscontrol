@@ -14,6 +14,8 @@ export function getEntityUrl(entityType: MentionEntityType, shortCode: number): 
       return `/goals/${shortCode}`;
     case 'journal':
       return `/journal/${shortCode}`;
+    case 'memory':
+      return `/memories/${shortCode}`;
     default:
       return '/';
   }
@@ -68,6 +70,8 @@ export function getMentionColorClasses(entityType: MentionEntityType): {
       return { badge: 'bg-green-100', text: 'text-green-700' };
     case 'journal':
       return { badge: 'bg-amber-100', text: 'text-amber-700' };
+    case 'memory':
+      return { badge: 'bg-pink-100', text: 'text-pink-700' };
     default:
       return { badge: 'bg-gray-100', text: 'text-gray-700' };
   }

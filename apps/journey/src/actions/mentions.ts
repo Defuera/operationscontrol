@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { entityShortCodes, tasks, projects, goals, journalEntries, memories } from '@/db/schema';
-import { eq, and, desc, sql, ilike } from 'drizzle-orm';
+import { eq, and, desc, sql, ilike, inArray } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import type { MentionEntityType, EntityShortCode } from '@/types';
 import type { MentionSearchResult, ParsedMention, ResolvedMention } from '@/lib/mentions/types';
@@ -116,27 +116,48 @@ export interface GroupedSearchResults {
   tasks: MentionSearchResult[];
   projects: MentionSearchResult[];
   goals: MentionSearchResult[];
+  memories: MentionSearchResult[];
 }
 
 /**
  * Search across all entity types for universal @ autocomplete
+ * If query matches an entity type name (e.g., "memory", "task"), filter to that type
  */
 export async function searchAllEntities(
   query: string
 ): Promise<GroupedSearchResults> {
   const user = await requireAuth();
   const limitPerType = 5;
+  const lowerQuery = query.toLowerCase();
 
-  const [taskResults, projectResults, goalResults] = await Promise.all([
+  // Check if query matches an entity type name - if so, show that type with empty query
+  const entityTypeMatch = ['task', 'project', 'goal', 'memory'].find(
+    (type) => type.startsWith(lowerQuery) && lowerQuery.length >= 3
+  );
+
+  if (entityTypeMatch) {
+    // Show recent items of that type (empty query = no content filter)
+    const results = await searchByTitle(user.id, entityTypeMatch as MentionEntityType, '', 10);
+    return {
+      tasks: entityTypeMatch === 'task' ? results : [],
+      projects: entityTypeMatch === 'project' ? results : [],
+      goals: entityTypeMatch === 'goal' ? results : [],
+      memories: entityTypeMatch === 'memory' ? results : [],
+    };
+  }
+
+  const [taskResults, projectResults, goalResults, memoryResults] = await Promise.all([
     searchByTitle(user.id, 'task', query, limitPerType),
     searchByTitle(user.id, 'project', query, limitPerType),
     searchByTitle(user.id, 'goal', query, limitPerType),
+    searchByTitle(user.id, 'memory', query, limitPerType),
   ]);
 
   return {
     tasks: taskResults,
     projects: projectResults,
     goals: goalResults,
+    memories: memoryResults,
   };
 }
 
@@ -351,6 +372,9 @@ async function searchByTitle(
           status: null,
         }));
     }
+
+    default:
+      return [];
   }
 }
 
@@ -367,7 +391,7 @@ async function getEntityDetails(
       const results = await db
         .select({ id: tasks.id, title: tasks.title, status: tasks.status })
         .from(tasks)
-        .where(and(eq(tasks.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(tasks.userId, userId), inArray(tasks.id, entityIds)));
 
       return results.map((r) => ({
         entityType: 'task' as const,
@@ -382,7 +406,7 @@ async function getEntityDetails(
       const results = await db
         .select({ id: projects.id, name: projects.name, status: projects.status })
         .from(projects)
-        .where(and(eq(projects.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(projects.userId, userId), inArray(projects.id, entityIds)));
 
       return results.map((r) => ({
         entityType: 'project' as const,
@@ -397,7 +421,7 @@ async function getEntityDetails(
       const results = await db
         .select({ id: goals.id, title: goals.title, status: goals.status })
         .from(goals)
-        .where(and(eq(goals.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(goals.userId, userId), inArray(goals.id, entityIds)));
 
       return results.map((r) => ({
         entityType: 'goal' as const,
@@ -412,7 +436,7 @@ async function getEntityDetails(
       const results = await db
         .select({ id: journalEntries.id, content: journalEntries.content })
         .from(journalEntries)
-        .where(and(eq(journalEntries.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(journalEntries.userId, userId), inArray(journalEntries.id, entityIds)));
 
       return results.map((r) => ({
         entityType: 'journal' as const,
@@ -427,7 +451,7 @@ async function getEntityDetails(
       const results = await db
         .select({ id: memories.id, content: memories.content })
         .from(memories)
-        .where(and(eq(memories.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(memories.userId, userId), inArray(memories.id, entityIds)));
 
       return results.map((r) => ({
         entityType: 'memory' as const,
@@ -437,6 +461,9 @@ async function getEntityDetails(
         status: null,
       }));
     }
+
+    default:
+      return [];
   }
 }
 
@@ -472,7 +499,7 @@ export async function resolveMentions(
         and(
           eq(entityShortCodes.userId, user.id),
           eq(entityShortCodes.entityType, entityType),
-          sql`short_code = ANY(${shortCodes})`
+          inArray(entityShortCodes.shortCode, shortCodes)
         )
       );
 
@@ -534,7 +561,7 @@ async function getEntityDetailsById(
       const results = await db
         .select({ id: tasks.id, title: tasks.title, status: tasks.status })
         .from(tasks)
-        .where(and(eq(tasks.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(tasks.userId, userId), inArray(tasks.id, entityIds)));
 
       for (const r of results) {
         result.set(r.id, { title: r.title, status: r.status });
@@ -546,7 +573,7 @@ async function getEntityDetailsById(
       const results = await db
         .select({ id: projects.id, name: projects.name, status: projects.status })
         .from(projects)
-        .where(and(eq(projects.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(projects.userId, userId), inArray(projects.id, entityIds)));
 
       for (const r of results) {
         result.set(r.id, { title: r.name, status: r.status });
@@ -558,7 +585,7 @@ async function getEntityDetailsById(
       const results = await db
         .select({ id: goals.id, title: goals.title, status: goals.status })
         .from(goals)
-        .where(and(eq(goals.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(goals.userId, userId), inArray(goals.id, entityIds)));
 
       for (const r of results) {
         result.set(r.id, { title: r.title, status: r.status });
@@ -570,7 +597,7 @@ async function getEntityDetailsById(
       const results = await db
         .select({ id: journalEntries.id, content: journalEntries.content })
         .from(journalEntries)
-        .where(and(eq(journalEntries.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(journalEntries.userId, userId), inArray(journalEntries.id, entityIds)));
 
       for (const r of results) {
         result.set(r.id, {
@@ -585,7 +612,7 @@ async function getEntityDetailsById(
       const results = await db
         .select({ id: memories.id, content: memories.content })
         .from(memories)
-        .where(and(eq(memories.userId, userId), sql`id = ANY(${entityIds})`));
+        .where(and(eq(memories.userId, userId), inArray(memories.id, entityIds)));
 
       for (const r of results) {
         result.set(r.id, {

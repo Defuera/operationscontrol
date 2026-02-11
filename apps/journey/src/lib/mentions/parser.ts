@@ -1,8 +1,8 @@
 import type { MentionEntityType } from '@/types';
 import type { ParsedMention } from './types';
 
-// Pattern: task#123, project#45, goal#7, journal#89
-const MENTION_REGEX = /\b(task|project|goal|journal)#(\d+)\b/gi;
+// Pattern: task#123, project#45, goal#7, journal#89, memory#2
+const MENTION_REGEX = /\b(task|project|goal|journal|memory)#(\d+)\b/gi;
 
 /**
  * Parse mentions from text and return an array of parsed mentions
@@ -76,8 +76,8 @@ export function detectPartialMention(
 ): PartialMention | null {
   const textBeforeCursor = text.slice(0, cursorPosition);
 
-  // First check for specific entity type mentions: task#, project#, etc.
-  const specificMatch = textBeforeCursor.match(/(task|project|goal|journal)#(\d*)$/i);
+  // First check for specific entity type mentions: task#, project#, memory#, etc.
+  const specificMatch = textBeforeCursor.match(/(task|project|goal|journal|memory)#(\d*)$/i);
   if (specificMatch) {
     const entityType = specificMatch[1].toLowerCase() as MentionEntityType;
     const query = specificMatch[2];
@@ -95,9 +95,25 @@ export function detectPartialMention(
     const isValidPosition = matchStart === 0 || /\s/.test(textBeforeCursor[matchStart - 1]);
 
     if (isValidPosition) {
+      const query = universalMatch[1];
+
+      // Check if query is entityType + number (e.g., "memory1", "task5")
+      // This allows @memory1 to work like memory#1
+      const entityNumberMatch = query.match(/^(task|project|goal|journal|memory)(\d+)$/i);
+      if (entityNumberMatch) {
+        const entityType = entityNumberMatch[1].toLowerCase() as MentionEntityType;
+        const shortCodeQuery = entityNumberMatch[2];
+        return {
+          mode: 'specific',
+          entityType,
+          query: shortCodeQuery,
+          startIndex: matchStart
+        };
+      }
+
       return {
         mode: 'universal' as const,
-        query: universalMatch[1],
+        query,
         startIndex: matchStart
       };
     }
