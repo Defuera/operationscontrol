@@ -9,6 +9,7 @@ import {
   getThreadMessages,
   createMessage,
   createAction,
+  editMessageAndBranch,
 } from '@/actions/ai-chat';
 import { getProjectWithTasksByShortCode } from '@/actions/projects';
 import { getGoals } from '@/actions/goals';
@@ -119,6 +120,7 @@ interface ChatRequest {
   path?: string;
   model?: string;
   systemPrompt?: string;
+  editMessageId?: string;
 }
 
 interface ProposedAction {
@@ -146,13 +148,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { threadId, message, path, model: requestedModel, systemPrompt } = await request.json() as ChatRequest;
+    const { threadId, message, path, model: requestedModel, systemPrompt, editMessageId } = await request.json() as ChatRequest;
     const model = requestedModel && ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_MODEL;
     const prompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
 
+    // Handle message editing: soft-delete original and subsequent messages
+    let resolvedThreadId = threadId;
+    if (editMessageId) {
+      const result = await editMessageAndBranch(editMessageId);
+      resolvedThreadId = result.threadId;
+    }
+
     // Get or create thread
-    const thread = threadId
-      ? { id: threadId }
+    const thread = resolvedThreadId
+      ? { id: resolvedThreadId }
       : await getOrCreateThread(path);
 
     // Load thread history

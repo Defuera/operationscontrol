@@ -98,6 +98,7 @@ export const aiMessages = pgTable('ai_messages', {
   promptTokens: integer('prompt_tokens'), // Tokens in the prompt
   completionTokens: integer('completion_tokens'), // Tokens in the completion
   createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at', { mode: 'string' }), // Soft-delete for message editing
 });
 
 // User Profiles (for Telegram linking and other user-specific data)

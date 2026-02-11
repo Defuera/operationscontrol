@@ -105,6 +105,7 @@ export interface AIMessage {
   promptTokens: number | null;
   completionTokens: number | null;
   createdAt: string;
+  deletedAt: string | null;
 }
 
 export interface AIAction {

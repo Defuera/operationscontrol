@@ -46,6 +46,7 @@ export function AIChatDrawer() {
     switchThread,
     createNewThread,
     archiveCurrentThread,
+    editMessage,
   } = useAIChat();
 
   const handleConfirm = async (actionId: string) => {
@@ -150,6 +151,7 @@ export function AIChatDrawer() {
           isLoading={isLoading}
           onConfirmAction={handleConfirm}
           onRejectAction={rejectAction}
+          onEditMessage={editMessage}
         />
 
         {/* Input */}

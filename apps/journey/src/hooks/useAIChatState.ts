@@ -33,6 +33,7 @@ export interface AIChatActions {
   switchThread: (threadId: string) => Promise<void>;
   createNewThread: () => Promise<void>;
   archiveCurrentThread: () => Promise<void>;
+  editMessage: (messageId: string, newContent: string) => Promise<void>;
 }
 
 export type AIChatContextValue = AIChatState & AIChatActions;
@@ -130,6 +131,7 @@ export function useAIChatState(): AIChatContextValue {
         promptTokens: null,
         completionTokens: null,
         createdAt: new Date().toISOString(),
+        deletedAt: null,
       };
 
       setState(prev => ({
@@ -167,6 +169,7 @@ export function useAIChatState(): AIChatContextValue {
         promptTokens: data.promptTokens || null,
         completionTokens: data.completionTokens || null,
         createdAt: new Date().toISOString(),
+        deletedAt: null,
       };
 
       const isNewThread = !state.threadId;
@@ -286,6 +289,94 @@ export function useAIChatState(): AIChatContextValue {
     }
   }, [state.threadId, state.threads]);
 
+  const editMessage = useCallback(async (messageId: string, newContent: string) => {
+    setState(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      // Find the message being edited and truncate messages at that point
+      const messageIndex = state.messages.findIndex(m => m.id === messageId);
+      if (messageIndex === -1) {
+        throw new Error('Message not found');
+      }
+
+      // Optimistically update: keep messages before the edit point, add new user message
+      const userMessage: AIMessage = {
+        id: crypto.randomUUID(),
+        threadId: state.threadId || '',
+        role: 'user',
+        content: newContent,
+        toolCalls: null,
+        model: null,
+        promptTokens: null,
+        completionTokens: null,
+        createdAt: new Date().toISOString(),
+        deletedAt: null,
+      };
+
+      setState(prev => ({
+        ...prev,
+        messages: [...prev.messages.slice(0, messageIndex), userMessage],
+      }));
+
+      const model = localStorage.getItem('journey-ai-model') || 'gpt-5.2';
+      const systemPrompt = localStorage.getItem('journey-system-prompt') || undefined;
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          threadId: state.threadId,
+          message: newContent,
+          path: state.path,
+          model,
+          systemPrompt,
+          editMessageId: messageId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Edit request failed');
+      }
+
+      const assistantMessage: AIMessage = {
+        id: data.messageId,
+        threadId: data.threadId,
+        role: 'assistant',
+        content: data.response,
+        toolCalls: data.proposedActions ? JSON.stringify(data.proposedActions) : null,
+        model: data.model || null,
+        promptTokens: data.promptTokens || null,
+        completionTokens: data.completionTokens || null,
+        createdAt: new Date().toISOString(),
+        deletedAt: null,
+      };
+
+      setState(prev => ({
+        ...prev,
+        messages: [...prev.messages, assistantMessage],
+        isLoading: false,
+      }));
+    } catch (error) {
+      console.error('Edit message error:', error);
+      // Reload thread messages on error to restore correct state
+      if (state.threadId) {
+        const result = await getThreadById(state.threadId);
+        if (result) {
+          setState(prev => ({
+            ...prev,
+            messages: result.messages,
+            isLoading: false,
+          }));
+        } else {
+          setState(prev => ({ ...prev, isLoading: false }));
+        }
+      } else {
+        setState(prev => ({ ...prev, isLoading: false }));
+      }
+    }
+  }, [state.threadId, state.path, state.messages]);
+
   return {
     ...state,
     setContext,
@@ -299,5 +390,6 @@ export function useAIChatState(): AIChatContextValue {
     switchThread,
     createNewThread,
     archiveCurrentThread,
+    editMessage,
   };
 }

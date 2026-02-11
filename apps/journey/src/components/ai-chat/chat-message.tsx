@@ -5,7 +5,8 @@ import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Check, X, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { getActionsByMessage } from '@/actions/ai-chat';
 import type { AIMessage, AIAction } from '@/types';
 
@@ -13,12 +14,19 @@ interface ChatMessageProps {
   message: AIMessage;
   onConfirmAction: (actionId: string) => Promise<void>;
   onRejectAction: (actionId: string) => Promise<void>;
+  onEditMessage?: (messageId: string, newContent: string) => Promise<void>;
+  isLoading?: boolean;
 }
 
-export function ChatMessage({ message, onConfirmAction, onRejectAction }: ChatMessageProps) {
+export function ChatMessage({ message, onConfirmAction, onRejectAction, onEditMessage, isLoading }: ChatMessageProps) {
   const [actions, setActions] = useState<AIAction[]>([]);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [expandedActions, setExpandedActions] = useState<Set<string>>(new Set());
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(message.content);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const canEdit = message.role === 'user' && onEditMessage && !isLoading;
 
   const toggleExpanded = (actionId: string) => {
     setExpandedActions(prev => {
@@ -58,27 +66,89 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction }: ChatMe
     setLoadingActionId(null);
   };
 
+  const handleStartEdit = () => {
+    setEditContent(message.content);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditContent(message.content);
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!onEditMessage || editContent.trim() === '' || editContent === message.content) {
+      setIsEditing(false);
+      return;
+    }
+    setIsEditing(false);
+    await onEditMessage(message.id, editContent.trim());
+  };
+
   return (
     <div
       className={cn(
         'flex flex-col gap-2',
         message.role === 'user' ? 'items-end' : 'items-start'
       )}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Message content */}
-      {message.content && (
-        <div
-          className={cn(
-            'max-w-[80%] rounded-lg px-3 py-2 text-sm',
-            'prose prose-sm prose-neutral dark:prose-invert max-w-none',
-            'prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0',
-            'prose-pre:my-1 prose-code:text-xs prose-pre:bg-neutral-800 prose-pre:text-neutral-100 prose-pre:p-2',
-            message.role === 'user'
-              ? 'bg-primary text-primary-foreground prose-invert'
-              : 'bg-muted'
+      {message.content && !isEditing && (
+        <div className="relative group max-w-[80%]">
+          <div
+            className={cn(
+              'rounded-lg px-3 py-2 text-sm',
+              'prose prose-sm prose-neutral dark:prose-invert max-w-none',
+              'prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0',
+              'prose-pre:my-1 prose-code:text-xs prose-pre:bg-neutral-800 prose-pre:text-neutral-100 prose-pre:p-2',
+              message.role === 'user'
+                ? 'bg-primary text-primary-foreground prose-invert'
+                : 'bg-muted'
+            )}
+          >
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          </div>
+          {canEdit && isHovered && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute -left-8 top-1/2 -translate-y-1/2 h-6 w-6 opacity-60 hover:opacity-100"
+              onClick={handleStartEdit}
+              title="Edit message"
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
           )}
-        >
-          <ReactMarkdown>{message.content}</ReactMarkdown>
+        </div>
+      )}
+
+      {/* Edit mode */}
+      {isEditing && (
+        <div className="max-w-[80%] w-full flex flex-col gap-2">
+          <Textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            className="min-h-[80px] text-sm resize-none"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCancelEdit}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveEdit}
+              disabled={editContent.trim() === '' || editContent === message.content}
+            >
+              Save & Regenerate
+            </Button>
+          </div>
         </div>
       )}
 

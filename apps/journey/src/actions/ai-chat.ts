@@ -46,7 +46,7 @@ export async function getOrCreateThread(
 
 export async function getThreadMessages(threadId: string): Promise<AIMessage[]> {
   const messages = await db.select().from(aiMessages)
-    .where(eq(aiMessages.threadId, threadId))
+    .where(and(eq(aiMessages.threadId, threadId), sql`${aiMessages.deletedAt} IS NULL`))
     .orderBy(asc(aiMessages.createdAt));
   return messages as AIMessage[];
 }
@@ -387,7 +387,7 @@ export async function getThreadByPath(
   const thread = existing[0];
 
   const messages = await db.select().from(aiMessages)
-    .where(eq(aiMessages.threadId, thread.id))
+    .where(and(eq(aiMessages.threadId, thread.id), sql`${aiMessages.deletedAt} IS NULL`))
     .orderBy(asc(aiMessages.createdAt));
 
   return {
@@ -461,7 +461,7 @@ export async function getThreadById(
   if (!thread) return null;
 
   const messages = await db.select().from(aiMessages)
-    .where(eq(aiMessages.threadId, threadId))
+    .where(and(eq(aiMessages.threadId, threadId), sql`${aiMessages.deletedAt} IS NULL`))
     .orderBy(asc(aiMessages.createdAt));
 
   return {
@@ -530,4 +530,60 @@ export async function archiveThread(threadId: string): Promise<void> {
   await db.update(aiThreads)
     .set({ archivedAt: new Date().toISOString() })
     .where(and(eq(aiThreads.id, threadId), eq(aiThreads.userId, user.id)));
+}
+
+export async function editMessageAndBranch(messageId: string): Promise<{ threadId: string }> {
+  const user = await requireAuth();
+  const now = new Date().toISOString();
+
+  // Fetch the message to be edited
+  const [message] = await db.select().from(aiMessages)
+    .where(eq(aiMessages.id, messageId));
+
+  if (!message) {
+    throw new Error('Message not found');
+  }
+
+  if (message.role !== 'user') {
+    throw new Error('Can only edit user messages');
+  }
+
+  // Verify user owns this thread
+  const [thread] = await db.select().from(aiThreads)
+    .where(and(eq(aiThreads.id, message.threadId), eq(aiThreads.userId, user.id)));
+
+  if (!thread) {
+    throw new Error('Thread not found');
+  }
+
+  // Get all messages in the thread that come at or after this message (by createdAt)
+  const messagesToDelete = await db.select().from(aiMessages)
+    .where(
+      and(
+        eq(aiMessages.threadId, message.threadId),
+        sql`${aiMessages.createdAt} >= ${message.createdAt}`,
+        sql`${aiMessages.deletedAt} IS NULL`
+      )
+    );
+
+  const messageIdsToDelete = messagesToDelete.map(m => m.id);
+
+  // Soft-delete all these messages
+  if (messageIdsToDelete.length > 0) {
+    await db.update(aiMessages)
+      .set({ deletedAt: now })
+      .where(sql`${aiMessages.id} IN (${sql.join(messageIdsToDelete.map(id => sql`${id}`), sql`, `)})`);
+
+    // Auto-reject any pending actions on soft-deleted messages
+    await db.update(aiActions)
+      .set({ status: 'rejected' })
+      .where(
+        and(
+          sql`${aiActions.messageId} IN (${sql.join(messageIdsToDelete.map(id => sql`${id}`), sql`, `)})`,
+          eq(aiActions.status, 'pending')
+        )
+      );
+  }
+
+  return { threadId: message.threadId };
 }
