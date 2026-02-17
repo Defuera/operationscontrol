@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AIContextProvider, AIChatDrawer } from "@/components/ai-chat";
 import { Nav } from "@/components/nav";
+import { BottomTabBar } from "@/components/bottom-tab-bar";
 import { ChangelogModal } from "@/components/changelog-modal";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,6 +22,10 @@ export const metadata: Metadata = {
   description: "Personal productivity workspace",
 };
 
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -36,13 +41,16 @@ export default async function RootLayout({
       >
         {user ? (
           <AIContextProvider>
-            <header className="border-b px-8 py-4 flex items-center justify-between">
+            <header className="border-b px-4 md:px-8 py-3 md:py-4 flex items-center justify-between">
               <h1 className="text-xl font-bold">The Journey</h1>
               <Nav />
             </header>
-            {children}
+            <div className="pb-20 md:pb-0">
+              {children}
+            </div>
             <AIChatDrawer />
             <ChangelogModal />
+            <BottomTabBar />
           </AIContextProvider>
         ) : (
           children

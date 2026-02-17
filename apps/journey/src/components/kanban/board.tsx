@@ -18,7 +18,9 @@ import { TaskCard } from './task-card';
 import { TaskDialog } from './task-dialog';
 import { ViewSwitcher, ViewType } from './view-switcher';
 import { DayView } from './day-view';
+import { MobileCarousel } from './mobile-carousel';
 import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { createTask, updateTask, updateTaskStatus, deleteTask, getTasks } from '@/actions/tasks';
 import { getProjects } from '@/actions/projects';
 import type { Task, TaskStatus, TaskDomain, BoardScope, Project } from '@/types';
@@ -175,15 +177,15 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
 
   return (
     <div className="h-full">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
         <ViewSwitcher
           view={view}
           onViewChange={setView}
           currentDate={currentDate}
           onDateChange={setCurrentDate}
         />
-        <div className="flex items-center gap-4">
-          <div className="flex gap-1">
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex flex-wrap gap-1">
             {domains.map(d => (
               <Button
                 key={d}
@@ -200,9 +202,13 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
             size="sm"
             onClick={() => setShowProjectTasks(!showProjectTasks)}
           >
-            Projects {showProjectTasks ? 'On' : 'Off'}
+            <span className="hidden md:inline">Projects {showProjectTasks ? 'On' : 'Off'}</span>
+            <span className="md:hidden">{showProjectTasks ? 'Proj' : 'No Proj'}</span>
           </Button>
-          <Button onClick={handleNewTask}>+ New Task</Button>
+          <Button onClick={handleNewTask} size="sm" className="md:size-auto">
+            <Plus className="h-4 w-4 md:hidden" />
+            <span className="hidden md:inline">+ New Task</span>
+          </Button>
         </div>
       </div>
 
@@ -216,26 +222,34 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
       )}
 
       {(view === 'week' || view === 'all') && (
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {statuses.map(status => (
-              <Column
-                key={status}
-                status={status}
-                tasks={tasksByStatus[status]}
-                onTaskClick={handleTaskClick}
-                projectMap={projectMap}
-              />
-            ))}
-          </div>
-          <DragOverlay>
-            {activeTask && <TaskCard task={activeTask} onClick={() => {}} />}
-          </DragOverlay>
-        </DndContext>
+        isMobile ? (
+          <MobileCarousel
+            tasksByStatus={tasksByStatus}
+            onTaskClick={handleTaskClick}
+            projectMap={projectMap}
+          />
+        ) : (
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {statuses.map(status => (
+                <Column
+                  key={status}
+                  status={status}
+                  tasks={tasksByStatus[status]}
+                  onTaskClick={handleTaskClick}
+                  projectMap={projectMap}
+                />
+              ))}
+            </div>
+            <DragOverlay>
+              {activeTask && <TaskCard task={activeTask} onClick={() => {}} />}
+            </DragOverlay>
+          </DndContext>
+        )
       )}
 
       <TaskDialog

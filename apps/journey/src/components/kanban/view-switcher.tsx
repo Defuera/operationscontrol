@@ -49,7 +49,7 @@ export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange }: 
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center gap-2 md:gap-4">
       <div className="flex gap-1">
         {views.map(v => (
           <Button
@@ -69,7 +69,7 @@ export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange }: 
           <Button variant="outline" size="sm" onClick={navigateNext}>→</Button>
         </div>
       )}
-      <span className="text-sm font-medium text-gray-600 min-w-[180px]">
+      <span className="text-xs md:text-sm font-medium text-gray-600 min-w-0 md:min-w-[180px]">
         {formatDateLabel()}
       </span>
     </div>

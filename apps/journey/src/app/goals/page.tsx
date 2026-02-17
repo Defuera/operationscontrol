@@ -92,7 +92,7 @@ export default function GoalsPage() {
   };
 
   return (
-    <main className="min-h-screen p-8">
+    <main className="min-h-screen p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Goals</h1>
         <Button onClick={handleNewGoal}>+ New Goal</Button>

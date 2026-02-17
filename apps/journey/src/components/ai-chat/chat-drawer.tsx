@@ -78,7 +78,7 @@ export function AIChatDrawer() {
         onClick={toggleChat}
         size="icon"
         className={cn(
-          'fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50',
+          'fixed bottom-22 md:bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50',
           isOpen && 'hidden'
         )}
       >

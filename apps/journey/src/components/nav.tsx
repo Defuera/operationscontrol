@@ -22,7 +22,7 @@ export function Nav() {
   };
 
   return (
-    <nav className="flex items-center gap-2">
+    <nav className="hidden md:flex items-center gap-2">
       {navItems.map(item => (
         <Link key={item.href} href={item.href}>
           <Button

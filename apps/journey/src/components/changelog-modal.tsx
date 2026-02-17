@@ -38,7 +38,7 @@ export function ChangelogModal() {
   const latestEntry = changelog[0];
 
   return (
-    <div className="fixed top-20 left-4 z-50 w-80 rounded-lg border bg-background p-4 shadow-lg animate-in slide-in-from-left-2 fade-in duration-300">
+    <div className="fixed top-20 left-4 right-4 md:right-auto z-50 w-auto md:w-80 rounded-lg border bg-background p-4 shadow-lg animate-in slide-in-from-left-2 fade-in duration-300">
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold">What&apos;s New</h3>
         <button

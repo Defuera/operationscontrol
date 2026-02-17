@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Circle } from 'lucide-react';
+import { Circle, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { FileUploadDialog, FileList } from '@/components/files';
 import { getFilesByEntity } from '@/actions/files';
 import type { Project, Task, ProjectType, ProjectStatus, TaskDomain, BoardScope, FileAttachment } from '@/types';
@@ -52,6 +59,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [filesSheetOpen, setFilesSheetOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -134,8 +142,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   };
 
   if (!project) {
-    return <div className="p-8">Loading...</div>;
+    return <div className="p-4 md:p-8">Loading...</div>;
   }
+
+  const filesContent = (
+    <FileList
+      files={files}
+      onFileDeleted={(fileId) => setFiles(prev => prev.filter(f => f.id !== fileId))}
+      layout="grid"
+      hideTitle
+      addButton={
+        <FileUploadDialog
+          entityType="project"
+          entityId={project.id}
+          onUploadComplete={(file) => setFiles(prev => [...prev, file])}
+          variant="tile"
+        />
+      }
+    />
+  );
 
   const tasksByStatus = {
     todo: tasks.filter(t => t.status === 'todo' || t.status === 'backlog'),
@@ -149,7 +174,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const goalsList = project.goals ? parseGoals(project.goals) : [];
 
   return (
-    <main className="min-h-screen p-8">
+    <main className="min-h-screen p-4 md:p-8">
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
           {project.shortCode && (
@@ -157,12 +182,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           )}
           <h1 className="text-2xl font-bold">{project.name}</h1>
         </div>
-        <Button variant="outline" onClick={() => setProjectDialogOpen(true)}>
-          Edit Project
-        </Button>
+        <div className="flex items-center gap-2">
+          {isMobile && (
+            <Button variant="outline" size="sm" onClick={() => setFilesSheetOpen(true)}>
+              <FolderOpen className="h-4 w-4 mr-1" />
+              Files
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => setProjectDialogOpen(true)}>
+            Edit Project
+          </Button>
+        </div>
       </div>
 
-      <div className="flex gap-8 mb-6">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-8 mb-6">
         <div className="flex-1 max-w-2xl">
           <EditableMarkdown
             value={project.description || ''}
@@ -196,22 +229,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           )}
         </div>
 
-        <div className="w-72 flex-shrink-0">
+        <div className="hidden md:block w-72 flex-shrink-0">
           <p className="text-sm text-gray-600 mb-2">Files</p>
-          <FileList
-            files={files}
-            onFileDeleted={(fileId) => setFiles(prev => prev.filter(f => f.id !== fileId))}
-            layout="grid"
-            hideTitle
-            addButton={
-              <FileUploadDialog
-                entityType="project"
-                entityId={project.id}
-                onUploadComplete={(file) => setFiles(prev => [...prev, file])}
-                variant="tile"
-              />
-            }
-          />
+          {filesContent}
         </div>
       </div>
 
@@ -307,6 +327,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         onDelete={editingTask ? handleTaskDelete : undefined}
         showDomain={false}
       />
+
+      <Sheet open={filesSheetOpen} onOpenChange={setFilesSheetOpen}>
+        <SheetContent side="bottom" className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Files</SheetTitle>
+            <SheetDescription className="sr-only">Project files</SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            {filesContent}
+          </div>
+        </SheetContent>
+      </Sheet>
     </main>
   );
 }

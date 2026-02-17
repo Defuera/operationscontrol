@@ -110,7 +110,7 @@ export default function SettingsPage() {
   const overallTotalCost = overallUsage?.reduce((sum, u) => sum + calculateCost(u), 0) ?? 0;
 
   return (
-    <main className="min-h-screen p-8 max-w-2xl mx-auto">
+    <main className="min-h-screen p-4 md:p-8 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
       <div className="space-y-6">

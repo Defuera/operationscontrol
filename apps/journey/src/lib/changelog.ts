@@ -1,4 +1,4 @@
-export const CHANGELOG_VERSION = '2026-02-15';
+export const CHANGELOG_VERSION = '2026-02-17';
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '2026-02-17',
+    title: 'Mobile Responsive UI',
+    items: [
+      'Bottom tab bar navigation on mobile devices',
+      'Swipeable kanban carousel and bottom sheets for task/project details',
+    ],
+  },
   {
     version: '2026-02-15',
     title: 'AI Can Now View Your Files',
