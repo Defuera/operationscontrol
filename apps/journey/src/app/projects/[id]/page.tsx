@@ -175,12 +175,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <main className="min-h-screen p-4 md:p-8">
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <h1 className="text-2xl font-bold">{project.name}</h1>
           {project.shortCode && (
             <MentionBadge entityType="project" shortCode={project.shortCode} />
           )}
-          <h1 className="text-2xl font-bold">{project.name}</h1>
         </div>
         <div className="flex items-center gap-2">
           {isMobile && (
@@ -189,7 +189,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               Files
             </Button>
           )}
-          <Button variant="outline" onClick={() => setProjectDialogOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setProjectDialogOpen(true)}>
             Edit Project
           </Button>
         </div>
@@ -229,7 +229,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           )}
         </div>
 
-        <div className="hidden md:block w-72 flex-shrink-0">
+        <div className="block max-md:hidden w-72 flex-shrink-0">
           <p className="text-sm text-gray-600 mb-2">Files</p>
           {filesContent}
         </div>

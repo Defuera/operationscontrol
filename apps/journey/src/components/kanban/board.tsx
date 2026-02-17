@@ -202,12 +202,12 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
             size="sm"
             onClick={() => setShowProjectTasks(!showProjectTasks)}
           >
-            <span className="hidden md:inline">Projects {showProjectTasks ? 'On' : 'Off'}</span>
+            <span className="inline max-md:hidden">Projects {showProjectTasks ? 'On' : 'Off'}</span>
             <span className="md:hidden">{showProjectTasks ? 'Proj' : 'No Proj'}</span>
           </Button>
           <Button onClick={handleNewTask} size="sm" className="md:size-auto">
             <Plus className="h-4 w-4 md:hidden" />
-            <span className="hidden md:inline">+ New Task</span>
+            <span className="inline max-md:hidden">+ New Task</span>
           </Button>
         </div>
       </div>

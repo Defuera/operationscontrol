@@ -232,7 +232,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* Right sidebar — desktop only */}
-        <div className="hidden md:block w-72 flex-shrink-0">
+        <div className="block max-md:hidden w-72 flex-shrink-0">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Properties</p>
           {propertiesContent}
         </div>
