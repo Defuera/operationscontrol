@@ -35,20 +35,35 @@ function FileThumbnail({ file, size = 'sm' }: { file: FileAttachment; size?: 'sm
     }
   }, [file.id, file.mimeType]);
 
-  const sizeClass = size === 'lg' ? 'h-24 w-24' : 'h-10 w-10';
+  if (size === 'lg') {
+    if (isImage(file.mimeType) && url) {
+      return (
+        <img
+          src={url}
+          alt={file.fileName}
+          className="w-full aspect-square object-cover rounded"
+        />
+      );
+    }
+    return (
+      <div className="w-full aspect-square bg-gray-100 rounded flex items-center justify-center">
+        <FileIcon className="h-6 w-6 text-gray-400" />
+      </div>
+    );
+  }
 
   if (isImage(file.mimeType) && url) {
     return (
       <img
         src={url}
         alt={file.fileName}
-        className={`${sizeClass} object-cover rounded flex-shrink-0`}
+        className="h-10 w-10 object-cover rounded flex-shrink-0"
       />
     );
   }
 
   return (
-    <div className={`${sizeClass} bg-gray-100 rounded flex items-center justify-center flex-shrink-0`}>
+    <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
       <FileIcon className="h-6 w-6 text-gray-400" />
     </div>
   );
@@ -103,7 +118,7 @@ export function FileList({ files, onFileDeleted, collapsible = false, showThumbn
       )}
 
       {!collapsed && layout === 'grid' && (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(5.5rem, 1fr))' }}>
           {files.map((file) => (
             <div
               key={file.id}

@@ -229,7 +229,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           )}
         </div>
 
-        <div className="block max-md:hidden w-72 flex-shrink-0">
+        <div className="block max-md:hidden flex-1">
           <p className="text-sm text-gray-600 mb-2">Files</p>
           {filesContent}
         </div>

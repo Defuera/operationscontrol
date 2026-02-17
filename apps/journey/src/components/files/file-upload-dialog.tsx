@@ -114,7 +114,7 @@ export function FileUploadDialog({ entityType, entityId, onUploadComplete, varia
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="h-24 w-24 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 hover:text-gray-500 transition-colors"
+      className="w-full aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 hover:text-gray-500 transition-colors"
     >
       <Upload className="h-6 w-6 mb-1" />
       <span className="text-xs">Add</span>
