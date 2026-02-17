@@ -76,7 +76,9 @@ async function handleLinkToken(chatId: number, token: string, telegramUsername?:
   }
 }
 
-const openai = new OpenAI();
+function getOpenAI() {
+  return new OpenAI();
+}
 
 async function transcribeVoice(fileId: string): Promise<string> {
   const audioBuffer = await downloadFile(fileId);
@@ -85,7 +87,7 @@ async function transcribeVoice(fileId: string): Promise<string> {
   const uint8Array = new Uint8Array(audioBuffer);
   const file = new File([uint8Array], 'voice.ogg', { type: 'audio/ogg' });
 
-  const transcription = await openai.audio.transcriptions.create({
+  const transcription = await getOpenAI().audio.transcriptions.create({
     file,
     model: 'whisper-1',
   });
@@ -302,7 +304,7 @@ async function handleAIChat(chatId: number, text: string, userId: string) {
     messages.push({ role: 'user', content: text });
 
     // Call OpenAI
-    let response = await openai.chat.completions.create({
+    let response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages,
       tools: allTools,
@@ -345,7 +347,7 @@ async function handleAIChat(chatId: number, text: string, userId: string) {
         messages.push({ role: 'tool', tool_call_id: result.id, content: result.result });
       }
 
-      response = await openai.chat.completions.create({
+      response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages,
         tools: allTools,

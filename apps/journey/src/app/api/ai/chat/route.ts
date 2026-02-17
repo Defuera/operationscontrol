@@ -20,7 +20,9 @@ import { getMemoriesForContext } from '@/actions/memories';
 import { createClient } from '@/lib/supabase/server';
 import type { AIEntityType, AIActionType, MentionEntityType } from '@/types';
 
-const openai = new OpenAI();
+function getOpenAI() {
+  return new OpenAI();
+}
 
 async function getGoalsContext(): Promise<string | null> {
   const goals = await getGoals();
@@ -216,7 +218,7 @@ export async function POST(request: Request) {
     messages.push({ role: 'user', content: message });
 
     // Call OpenAI with tools
-    let response = await openai.chat.completions.create({
+    let response = await getOpenAI().chat.completions.create({
       model,
       messages,
       tools: allTools,
@@ -349,7 +351,7 @@ export async function POST(request: Request) {
       toolResults.length = 0; // Clear for next iteration
 
       // Get next response
-      response = await openai.chat.completions.create({
+      response = await getOpenAI().chat.completions.create({
         model,
         messages,
         tools: allTools,
