@@ -403,6 +403,8 @@ function getEntityType(toolName: string): AIEntityType {
   if (toolName.includes('Project')) return 'project';
   if (toolName.includes('Goal')) return 'goal';
   if (toolName.includes('Journal')) return 'journal';
+  if (toolName.includes('File') || toolName.includes('upload')) return 'file';
+  if (toolName.includes('Memory') || toolName.includes('memory')) return 'memory';
   return 'task';
 }
 
