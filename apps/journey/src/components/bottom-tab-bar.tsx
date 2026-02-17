@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, Target, FolderOpen, BookOpen, Settings } from 'lucide-react';
+import { LayoutGrid, Target, FolderOpen, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
@@ -10,7 +10,6 @@ const tabs = [
   { href: '/goals', label: 'Goals', icon: Target },
   { href: '/projects', label: 'Projects', icon: FolderOpen },
   { href: '/journal', label: 'Journal', icon: BookOpen },
-  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function BottomTabBar() {
