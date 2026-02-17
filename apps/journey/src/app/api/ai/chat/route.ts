@@ -226,6 +226,8 @@ export async function POST(request: Request) {
     const pendingActionData: PendingActionData[] = [];
     let assistantMessage = response.choices[0].message;
     const toolResults: { id: string; result: string }[] = [];
+    // Track images that need to be added to conversation for vision
+    const pendingImages: { fileName: string; mimeType: string; base64: string }[] = [];
 
     // Track total token usage across all API calls
     let totalPromptTokens = response.usage?.prompt_tokens || 0;
@@ -277,6 +279,32 @@ export async function POST(request: Request) {
         } else {
           // Execute read tool immediately with userId for data isolation
           const result = await executeReadTool(toolName, args, user.id);
+
+          // Special handling for image files - queue them for vision
+          if (toolName === 'readFileContents' && result.success && result.data) {
+            const fileData = result.data as { fileName: string; mimeType: string; isBase64: boolean; content: string };
+            if (fileData.isBase64 && fileData.mimeType.startsWith('image/')) {
+              // Queue image for vision, return metadata only in tool result
+              pendingImages.push({
+                fileName: fileData.fileName,
+                mimeType: fileData.mimeType,
+                base64: fileData.content,
+              });
+              toolResults.push({
+                id: toolCall.id,
+                result: JSON.stringify({
+                  success: true,
+                  data: {
+                    fileName: fileData.fileName,
+                    mimeType: fileData.mimeType,
+                    note: 'Image loaded and will be shown to you for analysis.',
+                  },
+                }),
+              });
+              continue;
+            }
+          }
+
           toolResults.push({
             id: toolCall.id,
             result: JSON.stringify(result),
@@ -293,6 +321,31 @@ export async function POST(request: Request) {
           content: result.result,
         } as ChatCompletionMessageParam);
       }
+
+      // Add any pending images as a user message with vision content
+      if (pendingImages.length > 0) {
+        const imageContent: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }> = [
+          { type: 'text', text: `Here are the requested images (${pendingImages.length} file${pendingImages.length > 1 ? 's' : ''}):` },
+        ];
+        for (const img of pendingImages) {
+          imageContent.push({
+            type: 'image_url',
+            image_url: {
+              url: `data:${img.mimeType};base64,${img.base64}`,
+            },
+          });
+          imageContent.push({
+            type: 'text',
+            text: `[${img.fileName}]`,
+          });
+        }
+        messages.push({
+          role: 'user',
+          content: imageContent,
+        } as ChatCompletionMessageParam);
+        pendingImages.length = 0; // Clear for next iteration
+      }
+
       toolResults.length = 0; // Clear for next iteration
 
       // Get next response
@@ -374,7 +427,7 @@ function getEntityType(toolName: string): AIEntityType {
 }
 
 function getActionType(toolName: string): AIActionType {
-  if (toolName.startsWith('create')) return 'create';
+  if (toolName.startsWith('create') || toolName.startsWith('upload')) return 'create';
   if (toolName.startsWith('update')) return 'update';
   if (toolName.startsWith('delete')) return 'delete';
   return 'update';

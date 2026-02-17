@@ -1,4 +1,4 @@
-export const CHANGELOG_VERSION = '2026-02-11';
+export const CHANGELOG_VERSION = '2026-02-15';
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '2026-02-15',
+    title: 'AI Can Now View Your Files',
+    items: [
+      'AI assistant can now see images and read documents attached to your projects and tasks',
+      'Ask the AI to review photos, analyze screenshots, or summarize documents',
+    ],
+  },
   {
     version: '2026-02-11',
     title: 'Entity Mentions',

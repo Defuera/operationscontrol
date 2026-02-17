@@ -235,13 +235,74 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
         .where(and(eq(journalEntries.id, action.entityId), eq(journalEntries.userId, userId)));
     }
   } else if (action.entityType === 'file') {
-    if (action.actionType === 'delete' && action.entityId) {
+    const supabase = await createClient();
+    if (action.actionType === 'create') {
+      // Upload file (uploadFile tool)
+      const content = payload.content as string;
+      const isBase64 = payload.isBase64 as boolean;
+      const fileName = payload.fileName as string;
+      const mimeType = payload.mimeType as string;
+      const entityType = payload.entityType as 'task' | 'project' | 'goal' | 'journal';
+      const targetEntityId = payload.entityId as string;
+
+      // Convert content to buffer
+      const buffer = isBase64
+        ? Buffer.from(content, 'base64')
+        : Buffer.from(content, 'utf-8');
+
+      // Generate storage path
+      const fileExt = fileName.split('.').pop() || '';
+      const uniqueId = crypto.randomUUID();
+      const storagePath = `${userId}/${entityType}/${targetEntityId}/${uniqueId}.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(storagePath, buffer, {
+          contentType: mimeType,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Failed to upload file: ${uploadError.message}`);
+      }
+
+      // Create database record
+      const [newFile] = await db.insert(files).values({
+        userId,
+        storagePath,
+        fileName,
+        mimeType,
+        fileSize: buffer.length,
+        entityType,
+        entityId: targetEntityId,
+      }).returning();
+
+      entityId = newFile.id;
+      snapshotAfter = newFile;
+    } else if (action.actionType === 'update' && action.entityId) {
+      // Update file metadata
+      const [existing] = await db.select().from(files)
+        .where(and(eq(files.id, action.entityId), eq(files.userId, userId)));
+      if (!existing) throw new Error('File not found');
+      snapshotBefore = existing;
+
+      const updates: Partial<typeof existing> = {};
+      if (payload.fileName) updates.fileName = payload.fileName;
+      if (payload.entityType) updates.entityType = payload.entityType;
+      if (payload.entityId) updates.entityId = payload.entityId;
+
+      const [updated] = await db.update(files)
+        .set(updates)
+        .where(and(eq(files.id, action.entityId), eq(files.userId, userId)))
+        .returning();
+      snapshotAfter = updated;
+    } else if (action.actionType === 'delete' && action.entityId) {
       const [existing] = await db.select().from(files)
         .where(and(eq(files.id, action.entityId), eq(files.userId, userId)));
       if (!existing) throw new Error('File not found');
       snapshotBefore = existing;
       // Delete from Supabase Storage
-      const supabase = await createClient();
       await supabase.storage.from('attachments').remove([existing.storagePath]);
       // Delete from database
       await db.delete(files)

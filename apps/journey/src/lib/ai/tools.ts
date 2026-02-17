@@ -197,13 +197,30 @@ export const readTools: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'getFile',
-      description: 'Get a specific file by ID',
+      description: 'Get a specific file metadata by ID (does not include content)',
       parameters: {
         type: 'object',
         properties: {
           fileId: {
             type: 'string',
             description: 'The file ID',
+          },
+        },
+        required: ['fileId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'readFileContents',
+      description: 'Read the actual contents of a file. For images, returns base64-encoded data that can be viewed. For text files and PDFs, returns the text content. Use this to actually see/read files attached to entities.',
+      parameters: {
+        type: 'object',
+        properties: {
+          fileId: {
+            type: 'string',
+            description: 'The file ID to read contents from',
           },
         },
         required: ['fileId'],
@@ -563,6 +580,74 @@ export const writeTools: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'uploadFile',
+      description: 'Upload a new file attachment to an entity (task, project, goal, or journal). Use this to save generated content, reports, or other files.',
+      parameters: {
+        type: 'object',
+        properties: {
+          entityType: {
+            type: 'string',
+            enum: ['task', 'project', 'goal', 'journal'],
+            description: 'The type of entity to attach the file to',
+          },
+          entityId: {
+            type: 'string',
+            description: 'The ID of the entity to attach the file to',
+          },
+          fileName: {
+            type: 'string',
+            description: 'The name for the file (including extension)',
+          },
+          content: {
+            type: 'string',
+            description: 'The file content. For text files, provide the text directly. For binary files, provide base64-encoded content.',
+          },
+          mimeType: {
+            type: 'string',
+            description: 'The MIME type of the file (e.g., "text/plain", "application/json", "image/png")',
+          },
+          isBase64: {
+            type: 'boolean',
+            description: 'Set to true if the content is base64-encoded (for binary files)',
+          },
+        },
+        required: ['entityType', 'entityId', 'fileName', 'content', 'mimeType'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'updateFile',
+      description: 'Update a file attachment. Can rename the file or move it to a different entity.',
+      parameters: {
+        type: 'object',
+        properties: {
+          fileId: {
+            type: 'string',
+            description: 'The ID of the file to update',
+          },
+          fileName: {
+            type: 'string',
+            description: 'New name for the file',
+          },
+          entityType: {
+            type: 'string',
+            enum: ['task', 'project', 'goal', 'journal'],
+            description: 'Move to a different entity type',
+          },
+          entityId: {
+            type: 'string',
+            description: 'Move to a different entity ID',
+          },
+        },
+        required: ['fileId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'deleteFile',
       description: 'Delete a file attachment permanently',
       parameters: {
@@ -653,7 +738,7 @@ export const writeToolNames = [
   'createProject', 'updateProject', 'deleteProject',
   'createGoal', 'updateGoal', 'deleteGoal',
   'createJournalEntry', 'updateJournalEntry', 'deleteJournalEntry',
-  'deleteFile',
+  'uploadFile', 'updateFile', 'deleteFile',
   'createMemory', 'updateMemory', 'deleteMemory',
 ];
 export const readToolNames = [
@@ -661,7 +746,7 @@ export const readToolNames = [
   'searchProjects', 'getProject',
   'searchGoals', 'getGoal',
   'searchJournalEntries', 'getJournalEntry',
-  'getFilesByEntity', 'getFile',
+  'getFilesByEntity', 'getFile', 'readFileContents',
   'searchMemories', 'getMemory',
 ];
 

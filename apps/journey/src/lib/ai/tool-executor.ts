@@ -2,6 +2,7 @@ import { db } from '@/db';
 import { tasks, projects, goals, journalEntries, files, entityShortCodes, memories } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import type { Task, Project, Goal, JournalEntry, FileAttachment, FileEntityType, MentionEntityType, Memory } from '@/types';
+import { getFileContentsInternal } from '@/actions/files';
 
 // Resolve a short code to an entity ID
 async function resolveShortCode(
@@ -316,6 +317,26 @@ export async function executeReadTool(name: string, args: Record<string, unknown
         return { success: true, data: result[0] as FileAttachment };
       }
 
+      case 'readFileContents': {
+        if (!userId) {
+          return { success: false, error: 'User ID required to read file contents' };
+        }
+        const fileId = args.fileId as string;
+        const contents = await getFileContentsInternal(fileId, userId);
+        if (!contents) {
+          return { success: false, error: 'File not found or could not be read' };
+        }
+        return {
+          success: true,
+          data: {
+            fileName: contents.fileName,
+            mimeType: contents.mimeType,
+            isBase64: contents.isBase64,
+            content: contents.content,
+          },
+        };
+      }
+
       case 'searchMemories': {
         if (!userId) {
           return { success: false, error: 'User ID required for memory search' };
@@ -448,6 +469,14 @@ export function describeWriteAction(
       return `Delete journal#${args.shortCode}`;
 
     // Files
+    case 'uploadFile':
+      return `Upload file: "${args.fileName}" to ${args.entityType}`;
+    case 'updateFile': {
+      const changes = [];
+      if (args.fileName) changes.push(`rename to "${args.fileName}"`);
+      if (args.entityType || args.entityId) changes.push(`move to ${args.entityType || 'entity'}`);
+      return `Update file: ${changes.join(', ') || 'no changes'}`;
+    }
     case 'deleteFile':
       return `Delete file attachment`;
 
