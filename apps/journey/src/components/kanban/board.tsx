@@ -20,7 +20,9 @@ import { ViewSwitcher, ViewType } from './view-switcher';
 import { DayView } from './day-view';
 import { MobileCarousel } from './mobile-carousel';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Plus, SlidersHorizontal } from 'lucide-react';
 import { createTask, updateTask, updateTaskStatus, deleteTask, getTasks } from '@/actions/tasks';
 import { getProjects } from '@/actions/projects';
 import type { Task, TaskStatus, TaskDomain, BoardScope, Project } from '@/types';
@@ -53,6 +55,7 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [domainFilter, setDomainFilter] = useState<TaskDomain | 'all'>('all');
   const [showProjectTasks, setShowProjectTasks] = useState(true);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [view, setView] = useState<ViewType>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -145,6 +148,15 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
     return undefined; // backlog has no scope
   };
 
+  const handleQuickAdd = async (title: string) => {
+    const newTask = await createTask({
+      title,
+      priority: 0,
+      boardScope: getDefaultBoardScope(),
+    });
+    setTasks(prev => [...prev, newTask]);
+  };
+
   const handleSave = async (data: {
     title: string;
     description: string;
@@ -175,6 +187,8 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
     }
   };
 
+  const hasActiveFilter = domainFilter !== 'all' || !showProjectTasks;
+
   return (
     <div className="h-full">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
@@ -185,30 +199,103 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
           onDateChange={setCurrentDate}
         />
         <div className="flex items-center gap-2 md:gap-4">
-          <div className="flex flex-wrap gap-1">
-            {domains.map(d => (
-              <Button
-                key={d}
-                variant={domainFilter === d ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setDomainFilter(d)}
-              >
-                {d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)}
-              </Button>
-            ))}
+          {/* Filter button — bottom sheet on mobile, popover on desktop */}
+          <div className="md:hidden">
+            <Button
+              variant="outline"
+              size="sm"
+              className="relative"
+              onClick={() => setFilterSheetOpen(true)}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {hasActiveFilter && (
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />
+              )}
+            </Button>
+            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+              <SheetContent side="bottom" showCloseButton={false}>
+                <SheetHeader>
+                  <SheetTitle>Filters</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 px-4 pb-6">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Domain</p>
+                    <div className="flex flex-wrap gap-1">
+                      {domains.map(d => (
+                        <Button
+                          key={d}
+                          variant={domainFilter === d ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setDomainFilter(d)}
+                        >
+                          {d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Projects</p>
+                    <Button
+                      variant={showProjectTasks ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setShowProjectTasks(!showProjectTasks)}
+                    >
+                      Projects {showProjectTasks ? 'On' : 'Off'}
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
-          <Button
-            variant={showProjectTasks ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setShowProjectTasks(!showProjectTasks)}
-          >
-            <span className="inline max-md:hidden">Projects {showProjectTasks ? 'On' : 'Off'}</span>
-            <span className="md:hidden">{showProjectTasks ? 'Proj' : 'No Proj'}</span>
-          </Button>
-          <Button onClick={handleNewTask} size="sm" className="md:size-auto">
-            <Plus className="h-4 w-4 md:hidden" />
-            <span className="inline max-md:hidden">+ New Task</span>
-          </Button>
+          <div className="max-md:hidden">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="relative">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {hasActiveFilter && (
+                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-3">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Domain</p>
+                    <div className="flex flex-wrap gap-1">
+                      {domains.map(d => (
+                        <Button
+                          key={d}
+                          variant={domainFilter === d ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setDomainFilter(d)}
+                        >
+                          {d === 'all' ? 'All' : d.charAt(0).toUpperCase() + d.slice(1)}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Projects</p>
+                    <Button
+                      variant={showProjectTasks ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setShowProjectTasks(!showProjectTasks)}
+                    >
+                      Projects {showProjectTasks ? 'On' : 'Off'}
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Hide + button on day view (inline add replaces it) */}
+          {view !== 'day' && (
+            <Button onClick={handleNewTask} size="sm" className="md:size-auto">
+              <Plus className="h-4 w-4 md:hidden" />
+              <span className="inline max-md:hidden">+ New Task</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -217,6 +304,7 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
           tasks={filteredTasks}
           onTaskClick={handleTaskClick}
           onToggleComplete={handleToggleComplete}
+          onQuickAdd={handleQuickAdd}
           projectMap={projectMap}
         />
       )}

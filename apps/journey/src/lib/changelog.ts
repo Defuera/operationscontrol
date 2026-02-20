@@ -1,4 +1,4 @@
-export const CHANGELOG_VERSION = '2026-02-17';
+export const CHANGELOG_VERSION = '2026-02-20';
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '2026-02-20',
+    title: 'Day View Mobile Improvements',
+    items: [
+      'Inline quick-add row in day view for faster task creation',
+      'Compact filter button on mobile replaces toolbar clutter',
+    ],
+  },
   {
     version: '2026-02-17',
     title: 'Mobile Responsive UI',

@@ -1,6 +1,7 @@
 'use client';
 
-import { CheckCircle2, Circle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { CheckCircle2, Circle, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { Task, Project } from '@/types';
 
@@ -15,12 +16,36 @@ interface DayViewProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   onToggleComplete: (task: Task) => void;
+  onQuickAdd?: (title: string) => void;
   projectMap?: Map<string, Project>;
 }
 
-export function DayView({ tasks, onTaskClick, onToggleComplete, projectMap }: DayViewProps) {
+export function DayView({ tasks, onTaskClick, onToggleComplete, onQuickAdd, projectMap }: DayViewProps) {
   const incompleteTasks = tasks.filter(t => t.status !== 'done');
   const completedTasks = tasks.filter(t => t.status === 'done');
+  const [isAdding, setIsAdding] = useState(false);
+  const [addValue, setAddValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isAdding) {
+      inputRef.current?.focus();
+    }
+  }, [isAdding]);
+
+  const handleSubmit = () => {
+    const title = addValue.trim();
+    if (title && onQuickAdd) {
+      onQuickAdd(title);
+      setAddValue('');
+      // Keep input open for rapid entry
+    }
+  };
+
+  const handleCancel = () => {
+    setIsAdding(false);
+    setAddValue('');
+  };
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -61,7 +86,39 @@ export function DayView({ tasks, onTaskClick, onToggleComplete, projectMap }: Da
             </div>
           </div>
         ))}
-        {incompleteTasks.length === 0 && (
+
+        {onQuickAdd && (
+          isAdding ? (
+            <div className="flex items-center gap-3 p-2">
+              <Plus className="h-5 w-5 text-gray-400" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={addValue}
+                onChange={(e) => setAddValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSubmit();
+                  if (e.key === 'Escape') handleCancel();
+                }}
+                onBlur={() => {
+                  if (!addValue.trim()) handleCancel();
+                }}
+                placeholder="Task title..."
+                className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 text-muted-foreground w-full text-left"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="text-sm">Add task</span>
+            </button>
+          )
+        )}
+
+        {incompleteTasks.length === 0 && !isAdding && (
           <p className="text-gray-500 text-sm py-4">No tasks for today. Add some from the backlog!</p>
         )}
       </div>
