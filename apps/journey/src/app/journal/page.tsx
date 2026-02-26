@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { EntryCard, EntryDialog } from '@/components/journal';
+import { useAIContext } from '@/components/ai-chat/context';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 import {
   getJournalEntries,
@@ -19,6 +20,12 @@ export default function JournalPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
+  const { setContext } = useAIContext();
+
+  useEffect(() => {
+    setContext('/journal');
+    return () => setContext(null);
+  }, [setContext]);
 
   useEffect(() => {
     loadData();
