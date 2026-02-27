@@ -1,4 +1,4 @@
-export const CHANGELOG_VERSION = '2026-02-20';
+export const CHANGELOG_VERSION = '2026-02-27';
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '2026-02-27',
+    title: 'Smoother Page Loading',
+    items: [
+      'Pages now show subtle loading placeholders instead of flashing "no items" messages',
+      'Task and project detail pages show skeleton layout while loading',
+    ],
+  },
   {
     version: '2026-02-20',
     title: 'Day View Mobile Improvements',

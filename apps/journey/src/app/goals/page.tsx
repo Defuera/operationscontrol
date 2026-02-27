@@ -23,6 +23,7 @@ function sortHorizons(horizons: string[]): string[] {
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [activeHorizon, setActiveHorizon] = useState<string | 'all'>('all');
@@ -34,6 +35,7 @@ export default function GoalsPage() {
   const loadGoals = async () => {
     const data = await getGoals();
     setGoals(data);
+    setLoaded(true);
   };
 
   useRealtimeSync(['goals'], loadGoals);
@@ -122,7 +124,13 @@ export default function GoalsPage() {
         </div>
       )}
 
-      {filteredGoals.length === 0 ? (
+      {!loaded ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-28 rounded-lg bg-muted animate-pulse" />
+          ))}
+        </div>
+      ) : filteredGoals.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           {goals.length === 0 ? (
             <p>No goals yet. Create your first goal to get started.</p>

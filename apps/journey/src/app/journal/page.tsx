@@ -18,6 +18,7 @@ import type { AnalysisResponse } from '@/lib/ai/types';
 export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const { setContext } = useAIContext();
@@ -38,6 +39,7 @@ export default function JournalPage() {
     ]);
     setEntries(entriesData);
     setTasks(tasksData);
+    setLoaded(true);
   };
 
   useRealtimeSync(['journal_entries', 'tasks'], loadData);
@@ -121,7 +123,13 @@ export default function JournalPage() {
         <Button onClick={handleNewEntry}>+ New Entry</Button>
       </div>
 
-      {entries.length === 0 ? (
+      {!loaded ? (
+        <div className="space-y-4 max-w-2xl">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-24 rounded-lg bg-muted animate-pulse" />
+          ))}
+        </div>
+      ) : entries.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No journal entries yet. Start writing!</p>
         </div>

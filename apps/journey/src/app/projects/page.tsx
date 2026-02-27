@@ -20,6 +20,7 @@ export default function ProjectsPage() {
   const { setContext } = useAIContext();
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<ProjectType | 'all'>('all');
 
@@ -36,6 +37,7 @@ export default function ProjectsPage() {
     ]);
     setProjects(projectsData);
     setTasks(tasksData);
+    setLoaded(true);
   };
 
   useRealtimeSync(['projects', 'tasks'], loadData);
@@ -128,13 +130,21 @@ export default function ProjectsPage() {
         </section>
       )}
 
-      {projects.length === 0 && (
+      {!loaded && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-28 rounded-lg bg-muted animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {loaded && projects.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <p>No projects yet. Create your first project to get started.</p>
         </div>
       )}
 
-      {projects.length > 0 && filteredProjects.length === 0 && (
+      {loaded && projects.length > 0 && filteredProjects.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <p>No projects match this filter.</p>
         </div>

@@ -142,7 +142,23 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   };
 
   if (!project) {
-    return <div className="p-4 md:p-8">Loading...</div>;
+    return (
+      <main className="min-h-screen p-4 md:p-8">
+        <div className="mb-6">
+          <div className="h-8 w-48 rounded bg-muted animate-pulse mb-2" />
+          <div className="h-8 w-24 rounded bg-muted animate-pulse" />
+        </div>
+        <div className="h-24 rounded-lg bg-muted animate-pulse mb-6 max-w-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="space-y-2">
+              <div className="h-6 w-24 rounded bg-muted animate-pulse" />
+              <div className="h-24 rounded-lg bg-muted animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </main>
+    );
   }
 
   const filesContent = (

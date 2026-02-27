@@ -91,7 +91,22 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   if (!task) {
-    return <div className="p-4 md:p-8">Loading...</div>;
+    return (
+      <main className="min-h-screen p-4 md:p-8">
+        <div className="h-8 w-16 rounded bg-muted animate-pulse mb-4" />
+        <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+          <div className="flex-1 space-y-4">
+            <div className="h-9 w-2/3 rounded bg-muted animate-pulse" />
+            <div className="h-32 rounded-lg bg-muted animate-pulse" />
+          </div>
+          <div className="max-md:hidden w-72 space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-8 rounded bg-muted animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </main>
+    );
   }
 
   const propertiesContent = (
