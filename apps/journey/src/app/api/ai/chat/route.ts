@@ -10,6 +10,7 @@ import {
   createMessage,
   createAction,
   editMessageAndBranch,
+  getActionsByMessage,
 } from '@/actions/ai-chat';
 import { getProjectWithTasksByShortCode } from '@/actions/projects';
 import { getGoals } from '@/actions/goals';
@@ -206,23 +207,43 @@ export async function POST(request: Request) {
       });
     }
 
-    // Add history
+    // Add history with action status context
     for (const msg of history) {
       messages.push({
         role: msg.role,
         content: msg.content,
       });
+
+      // For assistant messages with tool calls, inject action outcomes
+      if (msg.role === 'assistant' && msg.toolCalls && msg.toolCalls !== '[]') {
+        const msgActions = await getActionsByMessage(msg.id);
+        if (msgActions.length > 0) {
+          const statusSummary = msgActions.map(a => {
+            const payload = JSON.parse(a.payload);
+            const name = payload.title || payload.name || payload.content?.slice(0, 50) || '';
+            return `- ${a.actionType} ${a.entityType} "${name}": ${a.status}`;
+          }).join('\n');
+
+          messages.push({
+            role: 'system',
+            content: `Action outcomes from the above message:\n${statusSummary}`,
+          });
+        }
+      }
     }
 
     // Add current message
     messages.push({ role: 'user', content: message });
 
-    // Call OpenAI with tools
+    // Call OpenAI with tools and web search
     let response = await getOpenAI().chat.completions.create({
       model,
       messages,
       tools: allTools,
       tool_choice: 'auto',
+      web_search_options: {
+        search_context_size: 'medium',
+      },
     });
 
     const pendingActionData: PendingActionData[] = [];
@@ -356,6 +377,9 @@ export async function POST(request: Request) {
         messages,
         tools: allTools,
         tool_choice: 'auto',
+        web_search_options: {
+          search_context_size: 'medium',
+        },
       });
 
       // Accumulate token usage
