@@ -101,7 +101,7 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction, onEditMe
   };
 
   const handleSaveEdit = async () => {
-    if (!onEditMessage || editContent.trim() === '' || editContent === message.content) {
+    if (!onEditMessage || editContent.trim() === '') {
       setIsEditing(false);
       return;
     }
@@ -168,7 +168,7 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction, onEditMe
             <Button
               size="sm"
               onClick={handleSaveEdit}
-              disabled={editContent.trim() === '' || editContent === message.content}
+              disabled={editContent.trim() === ''}
             >
               Save & Regenerate
             </Button>

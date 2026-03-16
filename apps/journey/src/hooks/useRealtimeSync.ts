@@ -20,13 +20,12 @@ export function useRealtimeSync(
 
     const supabase = createClient();
     let timer: ReturnType<typeof setTimeout> | null = null;
+    const channelName = `realtime-sync:${tables.join(',')}`;
 
     const debouncedRefetch = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => refetchRef.current(), debounceMs);
     };
-
-    const channelName = `realtime-sync:${tables.join(',')}`;
     let channel = supabase.channel(channelName);
 
     for (const table of tables) {

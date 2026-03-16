@@ -174,8 +174,10 @@ export async function POST(request: Request) {
     await createMessage(thread.id, 'user', message);
 
     // Build messages for OpenAI
+    const now = new Date();
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: prompt },
+      { role: 'system', content: `Current date and time: ${now.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, ${now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` },
     ];
 
     // Add page-specific context
@@ -235,15 +237,12 @@ export async function POST(request: Request) {
     // Add current message
     messages.push({ role: 'user', content: message });
 
-    // Call OpenAI with tools and web search
+    // Call OpenAI with tools
     let response = await getOpenAI().chat.completions.create({
       model,
       messages,
       tools: allTools,
       tool_choice: 'auto',
-      web_search_options: {
-        search_context_size: 'medium',
-      },
     });
 
     const pendingActionData: PendingActionData[] = [];
@@ -377,9 +376,6 @@ export async function POST(request: Request) {
         messages,
         tools: allTools,
         tool_choice: 'auto',
-        web_search_options: {
-          search_context_size: 'medium',
-        },
       });
 
       // Accumulate token usage

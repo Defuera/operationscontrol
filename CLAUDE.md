@@ -16,6 +16,10 @@ A custom productivity app with kanban board, projects, and AI-powered journal.
 - **Current**: Supabase (PostgreSQL)
 - **Legacy**: SQLite (kept for history)
 
+### Supabase Realtime
+
+Pages use `useRealtimeSync` hook to reactively update when DB rows change. Tables must be added to the `supabase_realtime` Postgres publication for this to work. When adding a new table that needs reactive UI, add it to the publication. See `useRealtimeSync.ts` for usage examples.
+
 ## AI Assistant Role
 
 Claude acts as a productivity partner:

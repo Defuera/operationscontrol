@@ -195,7 +195,24 @@ export function useAIChatState(): AIChatContextValue {
       }
     } catch (error) {
       console.error('Send message error:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      const errorText = error instanceof Error ? error.message : 'Something went wrong';
+      const errorMessage: AIMessage = {
+        id: crypto.randomUUID(),
+        threadId: state.threadId || '',
+        role: 'assistant',
+        content: `⚠️ ${errorText}`,
+        toolCalls: null,
+        model: null,
+        promptTokens: null,
+        completionTokens: null,
+        createdAt: new Date().toISOString(),
+        deletedAt: null,
+      };
+      setState(prev => ({
+        ...prev,
+        messages: [...prev.messages, errorMessage],
+        isLoading: false,
+      }));
     }
   }, [state.threadId, state.path]);
 
@@ -375,13 +392,26 @@ export function useAIChatState(): AIChatContextValue {
       }));
     } catch (error) {
       console.error('Edit message error:', error);
-      // Reload thread messages on error to restore correct state
+      const errorText = error instanceof Error ? error.message : 'Something went wrong';
+      // Reload thread messages on error to restore correct state, then append error
       if (state.threadId) {
         const result = await getThreadById(state.threadId);
         if (result) {
+          const errorMsg: AIMessage = {
+            id: crypto.randomUUID(),
+            threadId: state.threadId,
+            role: 'assistant',
+            content: `⚠️ ${errorText}`,
+            toolCalls: null,
+            model: null,
+            promptTokens: null,
+            completionTokens: null,
+            createdAt: new Date().toISOString(),
+            deletedAt: null,
+          };
           setState(prev => ({
             ...prev,
-            messages: result.messages,
+            messages: [...result.messages, errorMsg],
             isLoading: false,
           }));
         } else {
