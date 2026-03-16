@@ -60,17 +60,7 @@ export async function updateMemory(
 
 export async function deleteMemory(id: string): Promise<void> {
   const user = await requireAuth();
-
-  // Delete the short code first
-  await db.delete(entityShortCodes)
-    .where(
-      and(
-        eq(entityShortCodes.entityId, id),
-        eq(entityShortCodes.entityType, 'memory'),
-        eq(entityShortCodes.userId, user.id)
-      )
-    );
-
+  // Short code auto-cleaned by DB trigger on delete
   await db.delete(memories).where(and(eq(memories.id, id), eq(memories.userId, user.id)));
 }
 

@@ -9,39 +9,6 @@ import type { MentionSearchResult, ParsedMention, ResolvedMention } from '@/lib/
 import { getEntityUrl } from '@/lib/mentions/resolver';
 
 /**
- * Assign the next sequential short code to an entity
- */
-export async function assignShortCode(
-  entityType: MentionEntityType,
-  entityId: string
-): Promise<number> {
-  const user = await requireAuth();
-
-  // Get the current max short code for this user and entity type
-  const maxResult = await db
-    .select({ maxCode: sql<number>`COALESCE(MAX(short_code), 0)` })
-    .from(entityShortCodes)
-    .where(
-      and(
-        eq(entityShortCodes.userId, user.id),
-        eq(entityShortCodes.entityType, entityType)
-      )
-    );
-
-  const nextCode = (maxResult[0]?.maxCode || 0) + 1;
-
-  // Insert the new short code
-  await db.insert(entityShortCodes).values({
-    userId: user.id,
-    entityType,
-    entityId,
-    shortCode: nextCode,
-  });
-
-  return nextCode;
-}
-
-/**
  * Get the short code for an entity
  */
 export async function getShortCode(

@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { aiThreads, aiMessages, aiActions, tasks, projects, goals, journalEntries, files, memories, entityShortCodes } from '@/db/schema';
+import { aiThreads, aiMessages, aiActions, tasks, projects, goals, journalEntries, files, memories } from '@/db/schema';
 import { eq, and, asc, desc, sql } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
@@ -335,15 +335,7 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
         .where(and(eq(memories.id, action.entityId), eq(memories.userId, userId)));
       if (!existing) throw new Error('Memory not found');
       snapshotBefore = existing;
-      // Delete the short code first
-      await db.delete(entityShortCodes)
-        .where(
-          and(
-            eq(entityShortCodes.entityId, action.entityId),
-            eq(entityShortCodes.entityType, 'memory'),
-            eq(entityShortCodes.userId, userId)
-          )
-        );
+      // Short code auto-cleaned by DB trigger on delete
       await db.delete(memories)
         .where(and(eq(memories.id, action.entityId), eq(memories.userId, userId)));
     }
