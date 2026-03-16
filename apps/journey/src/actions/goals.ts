@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { goals, entityShortCodes } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth';
 import type { Goal, GoalStatus } from '@/types';
@@ -22,28 +22,11 @@ export async function createGoal(input: CreateGoalInput): Promise<Goal> {
     description: input.description || null,
     horizon: input.horizon,
     status: 'active',
+  // Short code auto-assigned by DB trigger
   }).returning();
 
-  // Assign short code for entity linking
-  const maxResult = await db
-    .select({ maxCode: sql<number>`COALESCE(MAX(short_code), 0)` })
-    .from(entityShortCodes)
-    .where(
-      and(
-        eq(entityShortCodes.userId, user.id),
-        eq(entityShortCodes.entityType, 'goal')
-      )
-    );
-  const nextCode = (maxResult[0]?.maxCode || 0) + 1;
-  await db.insert(entityShortCodes).values({
-    userId: user.id,
-    entityType: 'goal',
-    entityId: goal[0].id,
-    shortCode: nextCode,
-  });
-
   revalidatePath('/goals');
-  return { ...goal[0], shortCode: nextCode } as Goal;
+  return goal[0] as Goal;
 }
 
 export async function updateGoal(

@@ -112,6 +112,7 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
   let entityId = action.entityId;
 
   // Execute the action based on type and entity
+  // Note: short codes are auto-assigned by DB trigger on insert
   if (action.entityType === 'task') {
     if (action.actionType === 'create') {
       const newTask = await db.insert(tasks).values({
@@ -318,24 +319,6 @@ export async function confirmActionForUser(actionId: string, userId: string): Pr
       }).returning();
       entityId = newMemory[0].id;
       snapshotAfter = newMemory[0];
-
-      // Assign short code for entity linking
-      const maxResult = await db
-        .select({ maxCode: sql<number>`COALESCE(MAX(short_code), 0)` })
-        .from(entityShortCodes)
-        .where(
-          and(
-            eq(entityShortCodes.userId, userId),
-            eq(entityShortCodes.entityType, 'memory')
-          )
-        );
-      const nextCode = (maxResult[0]?.maxCode || 0) + 1;
-      await db.insert(entityShortCodes).values({
-        userId,
-        entityType: 'memory',
-        entityId: newMemory[0].id,
-        shortCode: nextCode,
-      });
     } else if (action.actionType === 'update' && action.entityId) {
       const [existing] = await db.select().from(memories)
         .where(and(eq(memories.id, action.entityId), eq(memories.userId, userId)));

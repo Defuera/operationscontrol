@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { memories, entityShortCodes } from '@/db/schema';
-import { eq, and, or, isNull, sql, desc } from 'drizzle-orm';
+import { eq, and, or, isNull, desc } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth';
 import type { Memory } from '@/types';
 
@@ -25,27 +25,10 @@ export async function createMemory(input: CreateMemoryInput): Promise<Memory> {
     content: input.content,
     anchorPath: input.anchorPath || null,
     tags: input.tags || null,
+  // Short code auto-assigned by DB trigger
   }).returning();
 
-  // Assign short code for entity linking
-  const maxResult = await db
-    .select({ maxCode: sql<number>`COALESCE(MAX(short_code), 0)` })
-    .from(entityShortCodes)
-    .where(
-      and(
-        eq(entityShortCodes.userId, user.id),
-        eq(entityShortCodes.entityType, 'memory')
-      )
-    );
-  const nextCode = (maxResult[0]?.maxCode || 0) + 1;
-  await db.insert(entityShortCodes).values({
-    userId: user.id,
-    entityType: 'memory',
-    entityId: memory[0].id,
-    shortCode: nextCode,
-  });
-
-  return { ...memory[0], shortCode: nextCode } as Memory;
+  return memory[0] as Memory;
 }
 
 // Internal version that accepts userId directly (for AI chat)
@@ -53,6 +36,7 @@ export async function createMemoryForUser(
   userId: string,
   input: CreateMemoryInput
 ): Promise<Memory> {
+  // Short code auto-assigned by DB trigger
   const memory = await db.insert(memories).values({
     userId,
     content: input.content,
@@ -60,25 +44,7 @@ export async function createMemoryForUser(
     tags: input.tags || null,
   }).returning();
 
-  // Assign short code for entity linking
-  const maxResult = await db
-    .select({ maxCode: sql<number>`COALESCE(MAX(short_code), 0)` })
-    .from(entityShortCodes)
-    .where(
-      and(
-        eq(entityShortCodes.userId, userId),
-        eq(entityShortCodes.entityType, 'memory')
-      )
-    );
-  const nextCode = (maxResult[0]?.maxCode || 0) + 1;
-  await db.insert(entityShortCodes).values({
-    userId,
-    entityType: 'memory',
-    entityId: memory[0].id,
-    shortCode: nextCode,
-  });
-
-  return { ...memory[0], shortCode: nextCode } as Memory;
+  return memory[0] as Memory;
 }
 
 export async function updateMemory(

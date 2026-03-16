@@ -278,7 +278,9 @@ export function ChatMessage({ message, onConfirmAction, onRejectAction, onEditMe
 
 function formatActionDescription(action: AIAction): string {
   const payload = JSON.parse(action.payload);
-  const entityName = payload.title || payload.name || payload.content?.slice(0, 50) || payload.description?.slice(0, 30) || action.entityId?.slice(0, 8);
+  const entityName = payload.title || payload.name || payload.content?.slice(0, 50) || payload.description?.slice(0, 30)
+    || (payload.shortCode ? `${action.entityType}#${payload.shortCode}` : null)
+    || action.entityId?.slice(0, 8);
 
   return `${capitalize(action.actionType)} ${action.entityType}: ${entityName}`;
 }

@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { tasks, entityShortCodes } from '@/db/schema';
-import { eq, and, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, isNotNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth';
 import type { Task, TaskStatus, TaskDomain, BoardScope } from '@/types';
@@ -30,28 +30,11 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
     boardScope: input.boardScope || null,
     projectId: input.projectId || null,
     status: 'backlog',
+  // Short code auto-assigned by DB trigger
   }).returning();
 
-  // Assign short code for entity linking
-  const maxResult = await db
-    .select({ maxCode: sql<number>`COALESCE(MAX(short_code), 0)` })
-    .from(entityShortCodes)
-    .where(
-      and(
-        eq(entityShortCodes.userId, user.id),
-        eq(entityShortCodes.entityType, 'task')
-      )
-    );
-  const nextCode = (maxResult[0]?.maxCode || 0) + 1;
-  await db.insert(entityShortCodes).values({
-    userId: user.id,
-    entityType: 'task',
-    entityId: task[0].id,
-    shortCode: nextCode,
-  });
-
   revalidatePath('/');
-  return { ...task[0], shortCode: nextCode } as Task;
+  return task[0] as Task;
 }
 
 export async function updateTask(

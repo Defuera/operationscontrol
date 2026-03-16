@@ -20,6 +20,10 @@ A custom productivity app with kanban board, projects, and AI-powered journal.
 
 Pages use `useRealtimeSync` hook to reactively update when DB rows change. Tables must be added to the `supabase_realtime` Postgres publication for this to work. When adding a new table that needs reactive UI, add it to the publication. See `useRealtimeSync.ts` for usage examples.
 
+### Short Codes
+
+Entity short codes (task#1, journal#5, etc.) are auto-assigned by a Postgres `AFTER INSERT` trigger on all entity tables. Do NOT assign short codes in application code — the DB handles it.
+
 ## AI Assistant Role
 
 Claude acts as a productivity partner:

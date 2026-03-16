@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { projects, tasks, entityShortCodes } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth';
 import type { Project, ProjectType, ProjectStatus, Task } from '@/types';
@@ -24,28 +24,11 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
     type: input.type,
     goals: input.goals || null,
     status: 'active',
+  // Short code auto-assigned by DB trigger
   }).returning();
 
-  // Assign short code for entity linking
-  const maxResult = await db
-    .select({ maxCode: sql<number>`COALESCE(MAX(short_code), 0)` })
-    .from(entityShortCodes)
-    .where(
-      and(
-        eq(entityShortCodes.userId, user.id),
-        eq(entityShortCodes.entityType, 'project')
-      )
-    );
-  const nextCode = (maxResult[0]?.maxCode || 0) + 1;
-  await db.insert(entityShortCodes).values({
-    userId: user.id,
-    entityType: 'project',
-    entityId: project[0].id,
-    shortCode: nextCode,
-  });
-
   revalidatePath('/projects');
-  return { ...project[0], shortCode: nextCode } as Project;
+  return project[0] as Project;
 }
 
 export async function updateProject(
