@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { tasks, entityShortCodes } from '@/db/schema';
-import { eq, and, isNotNull } from 'drizzle-orm';
+import { eq, and, ne, isNotNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { requireAuth } from '@/lib/auth';
 import type { Task, TaskStatus, TaskDomain, BoardScope } from '@/types';
@@ -104,6 +104,7 @@ export async function getTasks(): Promise<Task[]> {
       projectId: tasks.projectId,
       createdAt: tasks.createdAt,
       updatedAt: tasks.updatedAt,
+      archivedAt: tasks.archivedAt,
       shortCode: entityShortCodes.shortCode,
     })
     .from(tasks)
@@ -114,7 +115,7 @@ export async function getTasks(): Promise<Task[]> {
         eq(entityShortCodes.entityType, 'task')
       )
     )
-    .where(eq(tasks.userId, user.id));
+    .where(and(eq(tasks.userId, user.id), ne(tasks.status, 'archived')));
 
   return result as Task[];
 }
@@ -136,6 +137,7 @@ export async function getTask(id: string): Promise<Task | null> {
       projectId: tasks.projectId,
       createdAt: tasks.createdAt,
       updatedAt: tasks.updatedAt,
+      archivedAt: tasks.archivedAt,
       shortCode: entityShortCodes.shortCode,
     })
     .from(tasks)
@@ -168,6 +170,7 @@ export async function getTaskByShortCode(shortCode: number): Promise<Task | null
       projectId: tasks.projectId,
       createdAt: tasks.createdAt,
       updatedAt: tasks.updatedAt,
+      archivedAt: tasks.archivedAt,
       shortCode: entityShortCodes.shortCode,
     })
     .from(tasks)
@@ -205,6 +208,7 @@ export async function getBoardTasks(): Promise<Task[]> {
       projectId: tasks.projectId,
       createdAt: tasks.createdAt,
       updatedAt: tasks.updatedAt,
+      archivedAt: tasks.archivedAt,
       shortCode: entityShortCodes.shortCode,
     })
     .from(tasks)
@@ -215,7 +219,26 @@ export async function getBoardTasks(): Promise<Task[]> {
         eq(entityShortCodes.entityType, 'task')
       )
     )
-    .where(and(isNotNull(tasks.boardScope), eq(tasks.userId, user.id)));
+    .where(and(isNotNull(tasks.boardScope), eq(tasks.userId, user.id), ne(tasks.status, 'archived')));
 
   return result as Task[];
+}
+
+export async function archiveCompletedTasks(boardScope: BoardScope): Promise<number> {
+  const user = await requireAuth();
+  const now = new Date().toISOString();
+
+  const result = await db.update(tasks)
+    .set({ status: 'archived', archivedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(tasks.userId, user.id),
+        eq(tasks.status, 'done'),
+        eq(tasks.boardScope, boardScope)
+      )
+    )
+    .returning({ id: tasks.id });
+
+  revalidatePath('/');
+  return result.length;
 }

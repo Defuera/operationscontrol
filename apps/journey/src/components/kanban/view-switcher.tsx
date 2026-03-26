@@ -1,17 +1,21 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { LayoutGrid, List } from 'lucide-react';
 
 export type ViewType = 'day' | 'week' | 'all';
+export type DisplayMode = 'board' | 'list';
 
 interface ViewSwitcherProps {
   view: ViewType;
   onViewChange: (view: ViewType) => void;
   currentDate: Date;
   onDateChange: (date: Date) => void;
+  displayMode: DisplayMode;
+  onDisplayModeChange: (mode: DisplayMode) => void;
 }
 
-export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange }: ViewSwitcherProps) {
+export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange, displayMode, onDisplayModeChange }: ViewSwitcherProps) {
   const views: ViewType[] = ['day', 'week', 'all'];
 
   const navigatePrev = () => {
@@ -72,6 +76,22 @@ export function ViewSwitcher({ view, onViewChange, currentDate, onDateChange }: 
       <span className="text-xs md:text-sm font-medium text-gray-600 min-w-0 md:min-w-[180px]">
         {formatDateLabel()}
       </span>
+      {view !== 'all' && (
+        <div className="flex gap-1 border rounded-md p-0.5">
+          <button
+            onClick={() => onDisplayModeChange('list')}
+            className={`p-1 rounded ${displayMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <List className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onDisplayModeChange('board')}
+            className={`p-1 rounded ${displayMode === 'board' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

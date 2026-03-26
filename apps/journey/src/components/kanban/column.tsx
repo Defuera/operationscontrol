@@ -5,7 +5,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { TaskCard } from './task-card';
 import type { Task, TaskStatus, Project } from '@/types';
 
-const statusLabels: Record<TaskStatus, string> = {
+const statusLabels: Partial<Record<TaskStatus, string>> = {
   backlog: 'Backlog',
   todo: 'Todo',
   in_progress: 'In Progress',
@@ -27,7 +27,7 @@ export function Column({ status, tasks, onTaskClick, showScope, projectMap }: Co
     <div className="flex flex-col w-72 shrink-0">
       <div className="flex items-center justify-between mb-3 px-1">
         <h2 className="font-semibold text-sm text-gray-700">
-          {statusLabels[status]}
+          {statusLabels[status] ?? status}
         </h2>
         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
           {tasks.length}

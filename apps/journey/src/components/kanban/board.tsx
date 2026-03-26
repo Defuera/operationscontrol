@@ -16,14 +16,14 @@ import {
 import { Column } from './column';
 import { TaskCard } from './task-card';
 import { TaskDialog } from './task-dialog';
-import { ViewSwitcher, ViewType } from './view-switcher';
+import { ViewSwitcher, ViewType, DisplayMode } from './view-switcher';
 import { DayView } from './day-view';
 import { MobileCarousel } from './mobile-carousel';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Plus, SlidersHorizontal } from 'lucide-react';
-import { createTask, updateTask, updateTaskStatus, deleteTask, getTasks } from '@/actions/tasks';
+import { Plus, SlidersHorizontal, Archive } from 'lucide-react';
+import { createTask, updateTask, updateTaskStatus, deleteTask, getTasks, archiveCompletedTasks } from '@/actions/tasks';
 import { getProjects } from '@/actions/projects';
 import type { Task, TaskStatus, TaskDomain, BoardScope, Project } from '@/types';
 
@@ -57,6 +57,7 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
   const [showProjectTasks, setShowProjectTasks] = useState(true);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [view, setView] = useState<ViewType>('day');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('list');
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const sensors = useSensors(
@@ -87,7 +88,7 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
   const tasksByStatus = statuses.reduce((acc, status) => {
     acc[status] = filteredTasks.filter(t => t.status === status);
     return acc;
-  }, {} as Record<TaskStatus, Task[]>);
+  }, {} as Partial<Record<TaskStatus, Task[]>>);
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find(t => t.id === event.active.id);
@@ -187,6 +188,17 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
     }
   };
 
+  const handleArchiveCompleted = async () => {
+    const scope = view === 'day' ? 'day' : 'week';
+    setTasks(prev => prev.filter(t => !(t.status === 'done' && t.boardScope === scope)));
+    try {
+      await archiveCompletedTasks(scope as 'day' | 'week');
+    } catch {
+      refetchData();
+    }
+  };
+
+  const doneTasks = filteredTasks.filter(t => t.status === 'done');
   const hasActiveFilter = domainFilter !== 'all' || !showProjectTasks;
 
   return (
@@ -194,9 +206,14 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
         <ViewSwitcher
           view={view}
-          onViewChange={setView}
+          onViewChange={(v) => {
+            setView(v);
+            setDisplayMode(v === 'day' ? 'list' : 'board');
+          }}
           currentDate={currentDate}
           onDateChange={setCurrentDate}
+          displayMode={displayMode}
+          onDisplayModeChange={setDisplayMode}
         />
         <div className="flex items-center gap-2 md:gap-4">
           {/* Filter button — bottom sheet on mobile, popover on desktop */}
@@ -289,8 +306,16 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
             </Popover>
           </div>
 
-          {/* Hide + button on day view (inline add replaces it) */}
-          {view !== 'day' && (
+          {/* Archive completed tasks */}
+          {view !== 'all' && doneTasks.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleArchiveCompleted} title="Archive completed tasks">
+              <Archive className="h-4 w-4" />
+              <span className="inline max-md:hidden ml-1">Archive ({doneTasks.length})</span>
+            </Button>
+          )}
+
+          {/* Hide + button on day view in list mode (inline add replaces it) */}
+          {!(view === 'day' && displayMode === 'list') && (
             <Button onClick={handleNewTask} size="sm" className="md:size-auto">
               <Plus className="h-4 w-4 md:hidden" />
               <span className="inline max-md:hidden">+ New Task</span>
@@ -299,7 +324,7 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
         </div>
       </div>
 
-      {view === 'day' && (
+      {displayMode === 'list' && view !== 'all' && (
         <DayView
           tasks={filteredTasks}
           onTaskClick={handleTaskClick}
@@ -309,7 +334,7 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
         />
       )}
 
-      {(view === 'week' || view === 'all') && (
+      {(displayMode === 'board' || view === 'all') && (
         isMobile ? (
           <MobileCarousel
             tasksByStatus={tasksByStatus}
@@ -327,7 +352,7 @@ export function Board({ initialTasks, projects: initialProjects = [] }: BoardPro
                 <Column
                   key={status}
                   status={status}
-                  tasks={tasksByStatus[status]}
+                  tasks={tasksByStatus[status] ?? []}
                   onTaskClick={handleTaskClick}
                   projectMap={projectMap}
                 />

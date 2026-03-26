@@ -7,7 +7,7 @@ export const tasks = pgTable('tasks', {
   title: text('title').notNull(),
   description: text('description'),
   status: text('status', {
-    enum: ['backlog', 'todo', 'in_progress', 'done']
+    enum: ['backlog', 'todo', 'in_progress', 'done', 'archived']
   }).notNull().default('backlog'),
   domain: text('domain', {
     enum: ['work', 'side', 'chores', 'life']
@@ -18,6 +18,7 @@ export const tasks = pgTable('tasks', {
     enum: ['day', 'week', 'month', 'quarter']
   }), // null = not on board
   projectId: uuid('project_id').references(() => projects.id),
+  archivedAt: timestamp('archived_at', { mode: 'string' }),
   createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'string' }).notNull().defaultNow(),
 });

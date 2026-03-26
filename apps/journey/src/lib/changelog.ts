@@ -1,4 +1,4 @@
-export const CHANGELOG_VERSION = '2026-02-27';
+export const CHANGELOG_VERSION = '2026-03-26';
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: '2026-03-26',
+    title: 'View Toggle & Task Archiving',
+    items: [
+      'Switch between list and board view on both day and week views',
+      'Archive completed tasks to keep your board clean',
+    ],
+  },
   {
     version: '2026-02-27',
     title: 'Smoother Page Loading',

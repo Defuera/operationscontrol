@@ -1,4 +1,4 @@
-export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'done';
+export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'done' | 'archived';
 export type TaskDomain = 'work' | 'side' | 'chores' | 'life';
 export type BoardScope = 'day' | 'week' | 'month' | 'quarter';
 
@@ -13,6 +13,7 @@ export interface Task {
   scheduledFor: string | null;
   boardScope: BoardScope | null;
   projectId: string | null;
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
   shortCode?: number;

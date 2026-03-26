@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Task, TaskStatus, Project } from '@/types';
 
-const statusLabels: Record<TaskStatus, string> = {
+const statusLabels: Partial<Record<TaskStatus, string>> = {
   backlog: 'Backlog',
   todo: 'Todo',
   in_progress: 'In Progress',
@@ -23,7 +23,7 @@ const domainColors: Record<string, string> = {
 const statuses: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'done'];
 
 interface MobileCarouselProps {
-  tasksByStatus: Record<TaskStatus, Task[]>;
+  tasksByStatus: Partial<Record<TaskStatus, Task[]>>;
   onTaskClick: (task: Task) => void;
   projectMap?: Map<string, Project>;
 }
@@ -55,7 +55,7 @@ export function MobileCarousel({ tasksByStatus, onTaskClick, projectMap }: Mobil
         className="flex snap-x snap-mandatory overflow-x-auto scrollbar-hide gap-4 px-4"
       >
         {statuses.map(status => {
-          const tasks = tasksByStatus[status];
+          const tasks = tasksByStatus[status] ?? [];
           return (
             <div
               key={status}
@@ -63,7 +63,7 @@ export function MobileCarousel({ tasksByStatus, onTaskClick, projectMap }: Mobil
             >
               <div className="flex items-center justify-between mb-3 px-1">
                 <h2 className="font-semibold text-sm text-gray-700">
-                  {statusLabels[status]}
+                  {statusLabels[status] ?? status}
                 </h2>
                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                   {tasks.length}
